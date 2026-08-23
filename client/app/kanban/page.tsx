@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import KanbanCard from "../../component/KanbanCard";
+import KanbanCard from "@/components/KanbanCard";
 
 interface Assignee {
     _id: string;

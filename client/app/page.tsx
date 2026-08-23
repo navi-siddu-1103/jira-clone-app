@@ -2,9 +2,9 @@
 
 import React, { useEffect, useState } from "react";
 
-import KanbanCard from "@/component/KanbanCard";
-import CreateIssueModal from "@/component/CreateIssueModel";
-import IssueDetailsModel from "@/component/IssueDetailsModel";
+import KanbanCard from "@/components/KanbanCard";
+import CreateIssueModal from "@/components/CreateIssueModel";
+import IssueDetailsModel from "@/components/IssueDetailsModel";
 
 import { Plus } from "lucide-react";
 
