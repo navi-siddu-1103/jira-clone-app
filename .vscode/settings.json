@@ -1,0 +1,11 @@
+{
+    "chat.agent.maxRequests": 1000,
+    "editor.autoIndentOnPaste": true,
+    "editor.quickSuggestions": {
+        "other": "inline",
+        "comments": "on",
+        "strings": "on"
+    },
+    "editor.suggestOnTriggerCharacters": true,
+    "editor.tabCompletion": "on"
+}
