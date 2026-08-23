@@ -3,11 +3,12 @@ package com.example.jira.controller;
 import com.example.jira.dto.ApiResponse;
 import com.example.jira.dto.CreateIssueRequest;
 import com.example.jira.dto.UpdateIssueRequest;
-import com.example.jira.model.Issue;
-import com.example.jira.repository.IssueRepository;
 import com.example.jira.repository.ProjectRepository;
 import com.example.jira.repository.UserRepository;
+import org.bson.Document;
+import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,22 +20,30 @@ import java.util.*;
 public class IssueController {
 
     @Autowired
-    private IssueRepository issueRepository;
-
-    @Autowired
     private ProjectRepository projectRepository;
 
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private MongoTemplate mongoTemplate;
+
     @GetMapping
     public ResponseEntity<ApiResponse> getAllIssues() {
         try {
-            List<Issue> issues = issueRepository.findAllByOrderByCreatedAtDesc();
+            List<Map<String, Object>> resultList = new ArrayList<>();
+            List<Document> documents = mongoTemplate.findAll(Document.class, "issues");
+
+            for (Document doc : documents) {
+                Map<String, Object> map = convertDocumentToMap(doc);
+                resultList.add(map);
+            }
+
             Map<String, Object> data = new HashMap<>();
-            data.put("issues", issues);
-            return ResponseEntity.ok(ApiResponse.successWithCount(issues.size(), data));
+            data.put("issues", resultList);
+            return ResponseEntity.ok(ApiResponse.successWithCount(resultList.size(), data));
         } catch (Exception e) {
+            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(ApiResponse.error("Server error while fetching issues", e.getMessage()));
         }
@@ -49,12 +58,12 @@ public class IssueController {
                         .body(ApiResponse.error("Title and projectId are required"));
             }
 
-            Issue issue = new Issue();
-            issue.setTitle(request.getTitle().trim());
-            issue.setDescription(request.getDescription() != null ? request.getDescription().trim() : "");
-            issue.setType(request.getType() != null ? request.getType() : "TASK");
-            issue.setPriority(request.getPriority() != null ? request.getPriority() : "MEDIUM");
-            issue.setStatus("TODO");
+            Document doc = new Document();
+            doc.put("title", request.getTitle().trim());
+            doc.put("description", request.getDescription() != null ? request.getDescription().trim() : "");
+            doc.put("type", request.getType() != null ? request.getType() : "TASK");
+            doc.put("priority", request.getPriority() != null ? request.getPriority() : "MEDIUM");
+            doc.put("status", "TODO");
 
             // Attach project reference
             String pId = request.getProjectId();
@@ -64,9 +73,9 @@ public class IssueController {
                     pMap.put("_id", p.getId());
                     pMap.put("name", p.getName());
                     pMap.put("key", p.getKey());
-                    issue.setProjectId(pMap);
+                    doc.put("projectId", pMap);
                 },
-                () -> issue.setProjectId(pId)
+                () -> doc.put("projectId", pId)
             );
 
             // Attach assignee reference
@@ -78,22 +87,27 @@ public class IssueController {
                         uMap.put("_id", u.getId());
                         uMap.put("name", u.getName());
                         uMap.put("email", u.getEmail());
-                        issue.setAssignee(uMap);
+                        doc.put("assignee", uMap);
                     },
-                    () -> issue.setAssignee(uId)
+                    () -> doc.put("assignee", uId)
                 );
             }
 
-            issue.setDueDate(request.getDueDate());
-            Issue savedIssue = issueRepository.save(issue);
+            doc.put("dueDate", request.getDueDate());
+            doc.put("createdAt", new Date());
+            doc.put("updatedAt", new Date());
 
+            mongoTemplate.save(doc, "issues");
+
+            Map<String, Object> map = convertDocumentToMap(doc);
             Map<String, Object> data = new HashMap<>();
-            data.put("issue", savedIssue);
+            data.put("issue", map);
 
             return ResponseEntity.status(HttpStatus.CREATED)
                     .body(ApiResponse.success("Issue created successfully", data));
 
         } catch (Exception e) {
+            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(ApiResponse.error("Server error while creating issue", e.getMessage()));
         }
@@ -102,31 +116,36 @@ public class IssueController {
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse> updateIssue(@PathVariable String id, @RequestBody UpdateIssueRequest request) {
         try {
-            Optional<Issue> issueOpt = issueRepository.findById(id);
-            if (issueOpt.isEmpty()) {
+            Document doc = null;
+            if (ObjectId.isValid(id)) {
+                doc = mongoTemplate.findById(new ObjectId(id), Document.class, "issues");
+            }
+            if (doc == null) {
+                doc = mongoTemplate.findById(id, Document.class, "issues");
+            }
+
+            if (doc == null) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND)
                         .body(ApiResponse.error("Issue not found"));
             }
 
-            Issue issue = issueOpt.get();
-
             if (request.getTitle() != null) {
-                issue.setTitle(request.getTitle().trim());
+                doc.put("title", request.getTitle().trim());
             }
             if (request.getDescription() != null) {
-                issue.setDescription(request.getDescription().trim());
+                doc.put("description", request.getDescription().trim());
             }
             if (request.getType() != null) {
-                issue.setType(request.getType());
+                doc.put("type", request.getType());
             }
             if (request.getPriority() != null) {
-                issue.setPriority(request.getPriority());
+                doc.put("priority", request.getPriority());
             }
             if (request.getStatus() != null) {
-                issue.setStatus(request.getStatus());
+                doc.put("status", request.getStatus());
             }
             if (request.getDueDate() != null) {
-                issue.setDueDate(request.getDueDate());
+                doc.put("dueDate", request.getDueDate());
             }
             if (request.getAssignee() != null) {
                 if (!request.getAssignee().trim().isEmpty()) {
@@ -137,24 +156,26 @@ public class IssueController {
                             uMap.put("_id", u.getId());
                             uMap.put("name", u.getName());
                             uMap.put("email", u.getEmail());
-                            issue.setAssignee(uMap);
+                            doc.put("assignee", uMap);
                         },
-                        () -> issue.setAssignee(uId)
+                        () -> doc.put("assignee", uId)
                     );
                 } else {
-                    issue.setAssignee(null);
+                    doc.put("assignee", null);
                 }
             }
 
-            issue.setUpdatedAt(new Date());
-            Issue updatedIssue = issueRepository.save(issue);
+            doc.put("updatedAt", new Date());
+            mongoTemplate.save(doc, "issues");
 
+            Map<String, Object> map = convertDocumentToMap(doc);
             Map<String, Object> data = new HashMap<>();
-            data.put("issue", updatedIssue);
+            data.put("issue", map);
 
             return ResponseEntity.ok(ApiResponse.success("Issue updated successfully", data));
 
         } catch (Exception e) {
+            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(ApiResponse.error("Server error while updating issue", e.getMessage()));
         }
@@ -163,13 +184,43 @@ public class IssueController {
     @GetMapping("/project/{projectId}")
     public ResponseEntity<ApiResponse> getIssuesByProject(@PathVariable String projectId) {
         try {
-            List<Issue> issues = issueRepository.findByProjectId(projectId);
+            List<Map<String, Object>> resultList = new ArrayList<>();
+            List<Document> documents = mongoTemplate.findAll(Document.class, "issues");
+
+            for (Document doc : documents) {
+                Object pIdObj = doc.get("projectId");
+                boolean matches = false;
+                if (pIdObj instanceof Document) {
+                    Object nestedId = ((Document) pIdObj).get("_id");
+                    if (nestedId != null && nestedId.toString().equals(projectId)) {
+                        matches = true;
+                    }
+                } else if (pIdObj != null && pIdObj.toString().equals(projectId)) {
+                    matches = true;
+                }
+
+                if (matches) {
+                    resultList.add(convertDocumentToMap(doc));
+                }
+            }
+
             Map<String, Object> data = new HashMap<>();
-            data.put("issues", issues);
-            return ResponseEntity.ok(ApiResponse.successWithCount(issues.size(), data));
+            data.put("issues", resultList);
+            return ResponseEntity.ok(ApiResponse.successWithCount(resultList.size(), data));
         } catch (Exception e) {
+            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(ApiResponse.error("Server error while fetching project issues", e.getMessage()));
         }
+    }
+
+    private Map<String, Object> convertDocumentToMap(Document doc) {
+        Map<String, Object> map = new HashMap<>(doc);
+        Object idObj = map.get("_id");
+        if (idObj != null) {
+            map.put("_id", idObj.toString());
+            map.put("id", idObj.toString());
+        }
+        return map;
     }
 }
