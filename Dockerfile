@@ -1,10 +1,10 @@
-# Multi-stage Dockerfile for Spring Boot Application
+# Multi-stage Dockerfile for Spring Boot Application (Repo Root)
 FROM maven:3.9-eclipse-temurin-17-alpine AS build
 WORKDIR /app
 
-# Copy pom.xml and source code
-COPY pom.xml .
-COPY src ./src
+# Copy server files
+COPY server/pom.xml .
+COPY server/src ./src
 
 # Build the application JAR package
 RUN mvn clean package -DskipTests
