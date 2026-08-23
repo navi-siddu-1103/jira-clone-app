@@ -1,2 +1,36 @@
-node_modules/
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/resources/architecture/*.png
+!**/src/main/resources/architecture/*.jpg
 .env
+
+### Spring Boot ###
+.mvn/
+mvnw
+mvnw.cmd
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+
+### NetBeans ###
+/nbproject/private/
+/build/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+### VS Code ###
+.vscode/
