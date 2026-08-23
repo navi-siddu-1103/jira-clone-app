@@ -23,8 +23,10 @@ interface Issue {
     projectId?: string | object;
 }
 
-const API_URL =
+const rawApiUrl =
     process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+
+const API_URL = rawApiUrl.replace(/\/+$/, "");
 
 const KanbanPage = () => {
     const [issues, setIssues] = useState<Issue[]>([]);

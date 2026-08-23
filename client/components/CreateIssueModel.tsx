@@ -14,8 +14,10 @@ interface CreateIssueModelProps {
     onCreate?: (issue: any) => void;
 }
 
-const API_URL =
+const rawApiUrl =
     process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+
+const API_URL = rawApiUrl.replace(/\/+$/, "");
 
 const CreateIssuemodel = ({
     isOpen,

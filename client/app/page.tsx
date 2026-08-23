@@ -32,9 +32,11 @@ interface Issue {
     dueDate?: string;
 }
 
-const API_URL =
+const rawApiUrl =
     process.env.NEXT_PUBLIC_API_URL ||
     "http://localhost:5000";
+
+const API_URL = rawApiUrl.replace(/\/+$/, "");
 
 const PROJECT_ID = "6a897d9ddfcfb80e0e7cf8ab";
 
