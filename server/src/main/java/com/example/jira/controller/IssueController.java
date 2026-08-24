@@ -3,6 +3,8 @@ package com.example.jira.controller;
 import com.example.jira.dto.ApiResponse;
 import com.example.jira.dto.CreateIssueRequest;
 import com.example.jira.dto.UpdateIssueRequest;
+import com.example.jira.model.Project;
+import com.example.jira.model.User;
 import com.example.jira.repository.ProjectRepository;
 import com.example.jira.repository.UserRepository;
 import org.bson.Document;
@@ -67,30 +69,32 @@ public class IssueController {
 
             // Attach project reference
             String pId = request.getProjectId();
-            projectRepository.findById(pId).ifPresentOrElse(
-                p -> {
-                    Map<String, Object> pMap = new HashMap<>();
-                    pMap.put("_id", p.getId());
-                    pMap.put("name", p.getName());
-                    pMap.put("key", p.getKey());
-                    doc.put("projectId", pMap);
-                },
-                () -> doc.put("projectId", pId)
-            );
+            Optional<Project> pOpt = projectRepository.findById(pId);
+            if (pOpt.isPresent()) {
+                Project p = pOpt.get();
+                Map<String, Object> pMap = new HashMap<>();
+                pMap.put("_id", p.getId());
+                pMap.put("name", p.getName());
+                pMap.put("key", p.getKey());
+                doc.put("projectId", pMap);
+            } else {
+                doc.put("projectId", pId);
+            }
 
             // Attach assignee reference
             if (request.getAssignee() != null && !request.getAssignee().trim().isEmpty()) {
                 String uId = request.getAssignee().trim();
-                userRepository.findById(uId).ifPresentOrElse(
-                    u -> {
-                        Map<String, Object> uMap = new HashMap<>();
-                        uMap.put("_id", u.getId());
-                        uMap.put("name", u.getName());
-                        uMap.put("email", u.getEmail());
-                        doc.put("assignee", uMap);
-                    },
-                    () -> doc.put("assignee", uId)
-                );
+                Optional<User> uOpt = userRepository.findById(uId);
+                if (uOpt.isPresent()) {
+                    User u = uOpt.get();
+                    Map<String, Object> uMap = new HashMap<>();
+                    uMap.put("_id", u.getId());
+                    uMap.put("name", u.getName());
+                    uMap.put("email", u.getEmail());
+                    doc.put("assignee", uMap);
+                } else {
+                    doc.put("assignee", uId);
+                }
             }
 
             doc.put("dueDate", request.getDueDate());
@@ -150,16 +154,17 @@ public class IssueController {
             if (request.getAssignee() != null) {
                 if (!request.getAssignee().trim().isEmpty()) {
                     String uId = request.getAssignee().trim();
-                    userRepository.findById(uId).ifPresentOrElse(
-                        u -> {
-                            Map<String, Object> uMap = new HashMap<>();
-                            uMap.put("_id", u.getId());
-                            uMap.put("name", u.getName());
-                            uMap.put("email", u.getEmail());
-                            doc.put("assignee", uMap);
-                        },
-                        () -> doc.put("assignee", uId)
-                    );
+                    Optional<User> uOpt = userRepository.findById(uId);
+                    if (uOpt.isPresent()) {
+                        User u = uOpt.get();
+                        Map<String, Object> uMap = new HashMap<>();
+                        uMap.put("_id", u.getId());
+                        uMap.put("name", u.getName());
+                        uMap.put("email", u.getEmail());
+                        doc.put("assignee", uMap);
+                    } else {
+                        doc.put("assignee", uId);
+                    }
                 } else {
                     doc.put("assignee", null);
                 }
