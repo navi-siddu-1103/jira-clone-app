@@ -48,18 +48,10 @@ const Sidebar = () => {
     };
 
     const allproject = {
-        "6a897d9ddfcfb80e0e7cf8ab": {
-            id: "6a897d9ddfcfb80e0e7cf8ab",
-            name: "Platform Services",
-            key: "PS",
-            ownerId: "user-1",
-            memberIds: ["user-1", "user-2"],
-            createdAt: new Date().toISOString(),
-            description: "Core Platform infrastructure and Services",
-        },
+        "6a897d9ddfcfb80e0e7cf8ab": currentProject,
     };
 
-    const currentUser = {
+    const currentUser = user || {
         id: "user-1",
         name: "Naveen",
         email: "naveen@gmail.com",

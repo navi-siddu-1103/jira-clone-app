@@ -1,23 +1,23 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
 import Sidebar from "./Sidebar";
-import { AuthProvider } from "../context/AuthContext";
+import { AuthProvider, useAuth } from "../context/AuthContext";
 
 interface ClientLayoutProps {
     children: React.ReactNode;
 }
 
-const ClientLayout = ({ children }: ClientLayoutProps) => {
+const LayoutContent = ({ children }: { children: React.ReactNode }) => {
     const pathname = usePathname();
     const router = useRouter();
-
-    const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(true);
-    const [isReady, setIsReady] = useState(false);
+    const { isAuthenticated, isLoading } = useAuth();
 
     useEffect(() => {
+        if (isLoading) return;
+
         const publicPages = ["/login", "/setup-password"];
         const isPublicPage = publicPages.includes(pathname);
 
@@ -26,13 +26,11 @@ const ClientLayout = ({ children }: ClientLayoutProps) => {
         } else if (isAuthenticated && pathname === "/login") {
             router.push("/");
         }
+    }, [isAuthenticated, isLoading, pathname, router]);
 
-        setIsReady(true);
-    }, [isAuthenticated, pathname, router]);
-
-    if (!isReady) {
+    if (isLoading) {
         return (
-            <div className="h-screen w-screen bg-white">
+            <div className="flex h-screen w-screen items-center justify-center bg-white text-sm text-gray-500">
                 Loading...
             </div>
         );
@@ -41,19 +39,24 @@ const ClientLayout = ({ children }: ClientLayoutProps) => {
     const isAuthPage =
         pathname === "/login" || pathname === "/setup-password";
 
+    if (isAuthPage) {
+        return <>{children}</>;
+    }
+
+    return (
+        <div className="flex min-h-screen bg-white">
+            <Sidebar />
+            <main className="flex-1 overflow-x-hidden">
+                {children}
+            </main>
+        </div>
+    );
+};
+
+const ClientLayout = ({ children }: ClientLayoutProps) => {
     return (
         <AuthProvider>
-            {isAuthPage ? (
-                children
-            ) : (
-                <div className="flex min-h-screen bg-white">
-                    <Sidebar />
-
-                    <main className="flex-1 overflow-x-hidden">
-                        {children}
-                    </main>
-                </div>
-            )}
+            <LayoutContent>{children}</LayoutContent>
         </AuthProvider>
     );
 };

@@ -8,8 +8,14 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
+import { useAuth } from "@/context/AuthContext";
+
+const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+const API_URL = rawApiUrl.replace(/\/+$/, "");
+
 const CreateProjectPage = () => {
     const router = useRouter();
+    const { user } = useAuth();
 
     const [formData, setFormData] = useState({
         name: "",
@@ -56,14 +62,33 @@ const CreateProjectPage = () => {
         setIsLoading(true);
 
         try {
-            // Backend API will be connected later
-            console.log("Project data:", formData);
+            const response = await fetch(`${API_URL}/api/projects`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    name: formData.name.trim(),
+                    key: formData.key.trim().toUpperCase(),
+                    description: formData.description.trim(),
+                    owner: user?.name || "Naveen",
+                }),
+            });
 
-            // Temporary navigation
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.message || "Failed to create project");
+            }
+
             router.push("/projects");
         } catch (error) {
-            console.error(error);
-            setError("Something went wrong. Please try again.");
+            console.error("Create project error:", error);
+            setError(
+                error instanceof Error
+                    ? error.message
+                    : "Something went wrong. Please try again."
+            );
         } finally {
             setIsLoading(false);
         }
