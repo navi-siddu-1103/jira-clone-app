@@ -293,36 +293,27 @@ const KanbanPage = () => {
     }
 
     // ============================================
-    // ERROR
-    // ============================================
-
-    if (error) {
-        return (
-            <div className="min-h-screen bg-gray-50 p-6">
-                <div className="p-8">
-                    <p className="text-red-500">
-                        Failed to load issues:{" "}
-                        {error}
-                    </p>
-
-                    <button
-                        type="button"
-                        onClick={fetchIssues}
-                        className="mt-4 rounded-md bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700"
-                    >
-                        Try Again
-                    </button>
-                </div>
-            </div>
-        );
-    }
-
-    // ============================================
     // PAGE
     // ============================================
 
     return (
         <div className="min-h-screen bg-gray-50 p-6">
+
+            {/* Error Banner if any */}
+            {error && (
+                <div className="mb-6 flex items-center justify-between rounded-md bg-red-50 p-4 border border-red-200">
+                    <p className="text-sm font-medium text-red-600">
+                        Notice: {error}
+                    </p>
+                    <button
+                        type="button"
+                        onClick={fetchIssues}
+                        className="rounded bg-red-600 px-3 py-1 text-xs font-semibold text-white hover:bg-red-700"
+                    >
+                        Try Again
+                    </button>
+                </div>
+            )}
 
             {/* ========================================
                 HEADER

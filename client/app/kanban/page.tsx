@@ -180,27 +180,39 @@ const KanbanPage = () => {
     }
 
     // ==========================================
-    // ERROR
-    // ==========================================
-
-    if (error) {
-        return (
-            <div className="min-h-screen bg-gray-50 p-6">
-                <div className="rounded-md bg-red-50 p-6">
-                    <p className="text-red-500">
-                        Failed to load issues: {error}
-                    </p>
-                </div>
-            </div>
-        );
-    }
-
-    // ==========================================
     // KANBAN BOARD
     // ==========================================
 
     return (
         <div className="min-h-screen bg-gray-50 p-6">
+
+            {/* Error Banner if any */}
+            {error && (
+                <div className="mb-6 flex items-center justify-between rounded-md bg-red-50 p-4 border border-red-200">
+                    <p className="text-sm font-medium text-red-600">
+                        Notice: {error}
+                    </p>
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setError("");
+                            setIsLoading(true);
+                            // fetch issues inline
+                            fetch(`${API_URL}/api/issues`)
+                                .then(res => res.json())
+                                .then(data => {
+                                    const fetched = data.data?.issues || data.issues || [];
+                                    setIssues(fetched);
+                                })
+                                .catch(err => setError(err.message || "Failed to load issues"))
+                                .finally(() => setIsLoading(false));
+                        }}
+                        className="rounded bg-red-600 px-3 py-1 text-xs font-semibold text-white hover:bg-red-700"
+                    >
+                        Try Again
+                    </button>
+                </div>
+            )}
 
             {/* Header */}
             <div className="mb-6">
