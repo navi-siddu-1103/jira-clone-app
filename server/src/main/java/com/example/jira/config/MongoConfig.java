@@ -2,6 +2,8 @@ package com.example.jira.config;
 
 import com.mongodb.ConnectionString;
 import com.mongodb.MongoClientSettings;
+import com.mongodb.MongoCredential;
+import com.mongodb.ServerAddress;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import org.springframework.beans.factory.annotation.Value;
@@ -22,25 +24,25 @@ public class MongoConfig extends AbstractMongoClientConfiguration {
 
     @Override
     protected String getDatabaseName() {
-        try {
-            ConnectionString connString = new ConnectionString(getSanitizedUri());
-            String db = connString.getDatabase();
-            return (db != null && !db.trim().isEmpty()) ? db : "jira_clone";
-        } catch (Exception e) {
-            return "jira_clone";
-        }
+        return "jira_clone";
     }
 
     @Override
     @Bean
     public MongoClient mongoClient() {
         String sanitizedUri = getSanitizedUri();
+        System.out.println("Connecting to MongoDB with URI (credentials hidden): " +
+                sanitizedUri.replaceAll(":[^@]+@", ":<hidden>@"));
+
         ConnectionString connectionString = new ConnectionString(sanitizedUri);
 
         MongoClientSettings.Builder builder = MongoClientSettings.builder()
                 .applyConnectionString(connectionString);
 
-        if (sanitizedUri.startsWith("mongodb+srv://") || sanitizedUri.contains("ssl=true") || sanitizedUri.contains("tls=true")) {
+        // Apply permissive SSL for MongoDB Atlas (SRV URIs always use TLS)
+        if (sanitizedUri.startsWith("mongodb+srv://") ||
+                sanitizedUri.contains("ssl=true") ||
+                sanitizedUri.contains("tls=true")) {
             try {
                 TrustManager[] trustAllCerts = new TrustManager[]{
                     new X509TrustManager() {
@@ -66,6 +68,12 @@ public class MongoConfig extends AbstractMongoClientConfiguration {
         return MongoClients.create(builder.build());
     }
 
+    /**
+     * Sanitizes the MongoDB URI by:
+     * 1. Injecting /jira_clone as database if missing
+     * 2. Adding authSource=admin if not present (required for Atlas)
+     * 3. Auto-encoding special characters in credentials if needed
+     */
     private String getSanitizedUri() {
         if (rawUri == null || rawUri.trim().isEmpty()) {
             return "mongodb://127.0.0.1:27017/jira_clone";
@@ -73,37 +81,46 @@ public class MongoConfig extends AbstractMongoClientConfiguration {
 
         String uri = rawUri.trim();
 
-        // Ensure target database 'jira_clone' is present in URI path
+        // Auto-encode special characters in credentials if URI fails to parse
+        try {
+            new ConnectionString(uri);
+        } catch (Exception e) {
+            uri = autoEncodeUriCredentials(uri);
+        }
+
         if (uri.startsWith("mongodb+srv://") || uri.startsWith("mongodb://")) {
             try {
                 ConnectionString cs = new ConnectionString(uri);
+
+                // Step 1: Inject database name if missing
                 if (cs.getDatabase() == null || cs.getDatabase().trim().isEmpty()) {
                     int qIdx = uri.indexOf('?');
                     if (qIdx != -1) {
                         String basePath = uri.substring(0, qIdx);
-                        String params = uri.substring(qIdx);
-                        if (basePath.endsWith("/")) {
-                            uri = basePath + "jira_clone" + params;
-                        } else {
-                            uri = basePath + "/jira_clone" + params;
-                        }
+                        String params = uri.substring(qIdx); // includes '?'
+                        basePath = basePath.endsWith("/") ? basePath : basePath + "/";
+                        uri = basePath + "jira_clone" + params;
                     } else {
-                        if (uri.endsWith("/")) {
-                            uri = uri + "jira_clone";
-                        } else {
-                            uri = uri + "/jira_clone";
-                        }
+                        uri = uri.endsWith("/") ? uri + "jira_clone" : uri + "/jira_clone";
                     }
                 }
-            } catch (Exception ignore) {}
+
+                // Step 2: Ensure authSource=admin is in query params (required for Atlas)
+                if (!uri.contains("authSource=")) {
+                    uri = uri.contains("?")
+                            ? uri + "&authSource=admin"
+                            : uri + "?authSource=admin";
+                }
+
+                System.out.println("Final MongoDB URI (sanitized, credentials hidden): " +
+                        uri.replaceAll(":[^@]+@", ":<hidden>@"));
+
+            } catch (Exception e) {
+                System.err.println("URI sanitization warning: " + e.getMessage());
+            }
         }
 
-        try {
-            new ConnectionString(uri);
-            return uri;
-        } catch (Exception e) {
-            return autoEncodeUriCredentials(uri);
-        }
+        return uri;
     }
 
     private String autoEncodeUriCredentials(String uri) {
@@ -131,12 +148,14 @@ public class MongoConfig extends AbstractMongoClientConfiguration {
                 String username = userInfo.substring(0, firstColon);
                 String password = userInfo.substring(firstColon + 1);
 
-                String encodedUsername = username.replace("@", "%40");
-                String encodedPassword = password.replace("@", "%40")
-                                                  .replace("#", "%23")
-                                                  .replace("$", "%24")
-                                                  .replace("&", "%26")
-                                                  .replace("+", "%2B");
+                // Only encode if not already encoded
+                String encodedUsername = username.contains("%") ? username : username.replace("@", "%40");
+                String encodedPassword = password.contains("%40") ? password :
+                        password.replace("@", "%40")
+                                .replace("#", "%23")
+                                .replace("$", "%24")
+                                .replace("&", "%26")
+                                .replace("+", "%2B");
 
                 return prefix + encodedUsername + ":" + encodedPassword + "@" + hostAndParams;
             }
