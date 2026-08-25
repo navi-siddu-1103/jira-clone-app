@@ -20,6 +20,7 @@ public class User {
     private String email;
     private String password;
     private String role = "USER";
+    private String group;
     private Date createdAt = new Date();
     private Date updatedAt = new Date();
 
@@ -27,5 +28,12 @@ public class User {
         this.id = id;
         this.name = name;
         this.email = email;
+    }
+
+    public User(String id, String name, String email, String group) {
+        this.id = id;
+        this.name = name;
+        this.email = email;
+        this.group = group;
     }
 }

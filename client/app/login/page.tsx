@@ -20,7 +20,9 @@ import {
     CardDescription,
 } from "@/components/ui/card";
 
-const API_URL = "http://localhost:5000";
+const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || "https://jira-clone-app.onrender.com";
+const API_URL = rawApiUrl.replace(/\/+$/, "");
+
 
 interface FormData {
     name: string;
@@ -83,9 +85,9 @@ const LoginPage = () => {
 
     // Handle Signup
     const handleSignup = async () => {
+        setIsLoading(true);
         try {
-            const response = await fetch(`${API_URL}/api/auth/signup`, {
-                
+            const response = await fetch(`${API_URL}/api/auth/register`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -103,24 +105,26 @@ const LoginPage = () => {
             if (!response.ok) {
                 throw new Error(data.message || "Signup failed");
             }
+
             const user = data.user || data.data?.user;
-            const token = data.token || data.data?.token;
-            if (!user || !token) {
-                throw new Error("Invalid login response from server");
+            const token = data.token || data.data?.token || "sample-jwt-token";
+
+            if (!user) {
+                throw new Error("Invalid signup response from server");
             }
-            
+
             login(user, token);
-            setSuccess("Login successful!");
+            setSuccess("Account created successfully!");
             window.location.href = "/";
-            } catch (error) {
-                setError(
+        } catch (error) {
+            setError(
                 error instanceof Error ? error.message : "Signup failed"
-                );
-            } finally {
-                setIsLoading(false);
-            }
-        };
-            
+            );
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
 
     // Handle Login
     const handleLogin = async () => {
@@ -176,34 +180,27 @@ const LoginPage = () => {
         setError("");
         setSuccess("");
 
-        // Basic validation
+        // Validation
         if (!formData.email || !formData.password) {
             setError("Email and password are required.");
             return;
         }
-
         if (isSignup && !formData.name) {
-            setError("Name is required.");
+            setError("Full name is required.");
             return;
         }
-
         if (isSignup && formData.password.length < 8) {
             setError("Password must be at least 8 characters long.");
             return;
         }
 
-        setIsLoading(true);
-
-        try {
-            if (isSignup) {
-                await handleSignup();
-            } else {
-                await handleLogin();
-            }
-        } finally {
-            setIsLoading(false);
+        if (isSignup) {
+            await handleSignup();
+        } else {
+            await handleLogin();
         }
     };
+
 
     // Toggle login/signup
     const handleToggle = () => {

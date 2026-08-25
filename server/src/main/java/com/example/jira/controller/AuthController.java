@@ -29,7 +29,7 @@ public class AuthController {
 
             User savedUser = userRepository.save(user);
             Map<String, Object> data = new HashMap<>();
-            data.put("user", new User(savedUser.getId(), savedUser.getName(), savedUser.getEmail()));
+            data.put("user", new User(savedUser.getId(), savedUser.getName(), savedUser.getEmail(), savedUser.getGroup()));
             data.put("token", "sample-jwt-token");
 
             return ResponseEntity.status(HttpStatus.CREATED)
