@@ -2,9 +2,10 @@
 
 import React from "react";
 import {
-MoreHorizontal,
-User,
-CalendarDays,
+    CheckSquare,
+    Bug,
+    Bookmark,
+    Layers,
 } from "lucide-react";
 
 interface KanbanCardProps {
@@ -26,128 +27,133 @@ const KanbanCard = ({
     description,
     type = "TASK",
     priority = "MEDIUM",
-    assignee,
+    assignee = "John Doe",
     dueDate,
     status,
     onStatusChange,
     onClick,
 }: KanbanCardProps) => {
-const priorityStyles: Record<string, string> = {
-    LOW: "bg-green-50 text-green-700",
-    MEDIUM: "bg-yellow-50 text-yellow-700",
-    HIGH: "bg-orange-50 text-orange-700",
-    URGENT: "bg-red-50 text-red-700",
-};
+    const getPriorityBadge = (p: string) => {
+        const uppercaseP = (p || "MEDIUM").toUpperCase();
+        switch (uppercaseP) {
+            case "HIGH":
+            case "URGENT":
+                return (
+                    <span className="rounded-full bg-red-100 px-2.5 py-0.5 text-[11px] font-bold text-red-600">
+                        HIGH
+                    </span>
+                );
+            case "MEDIUM":
+                return (
+                    <span className="rounded-full bg-yellow-100 px-2.5 py-0.5 text-[11px] font-bold text-yellow-700">
+                        MEDIUM
+                    </span>
+                );
+            case "LOW":
+            default:
+                return (
+                    <span className="rounded-full bg-green-100 px-2.5 py-0.5 text-[11px] font-bold text-green-700">
+                        LOW
+                    </span>
+                );
+        }
+    };
 
-const typeStyles: Record<string, string> = {
-TASK: "bg-blue-50 text-blue-700",
-BUG: "bg-red-50 text-red-700",
-STORY: "bg-green-50 text-green-700",
-EPIC: "bg-purple-50 text-purple-700",
-};
+    const getTypeIcon = (t: string) => {
+        const uppercaseT = (t || "TASK").toUpperCase();
+        switch (uppercaseT) {
+            case "BUG":
+                return (
+                    <div className="flex h-5 w-5 items-center justify-center rounded bg-red-500 text-white">
+                        <Bug className="h-3 w-3" />
+                    </div>
+                );
+            case "STORY":
+            case "EPIC":
+                return (
+                    <div className="flex h-5 w-5 items-center justify-center rounded bg-purple-600 text-white">
+                        <Bookmark className="h-3 w-3" />
+                    </div>
+                );
+            case "TASK":
+            default:
+                return (
+                    <div className="flex h-5 w-5 items-center justify-center rounded bg-blue-600 text-white">
+                        <CheckSquare className="h-3 w-3" />
+                    </div>
+                );
+        }
+    };
 
-return (
-<div
-    onClick={() => {
-        console.log("KANBAN CARD CLICKED");
-        onClick?.();
-    }}
-    className="group cursor-pointer rounded-lg border border-gray-200 bg-white p-4 shadow-sm transition-all hover:border-blue-300 hover:shadow-md"
->
-    {/* Top section */}
-    <div className="mb-3 flex items-start justify-between gap-2">
-    <div className="min-w-0 flex-1">
-        <p className="mb-1 text-xs font-medium text-gray-400">
-        {id}
-        </p>
+    // Format display key e.g. PS-124
+    const displayKey = id.startsWith("PS-") || id.startsWith("PROJ-")
+        ? id
+        : `PS-${id.slice(-3).toUpperCase()}`;
 
-        <h3 className="line-clamp-2 text-sm font-semibold text-gray-900">
-        {title}
-        </h3>
-    </div>
-
-    <button
-        type="button"
-        onClick={(e) => e.stopPropagation()}
-        className="rounded-md p-1 text-gray-400 opacity-0 transition group-hover:opacity-100 hover:bg-gray-100 hover:text-gray-700"
-    >
-        <MoreHorizontal className="h-4 w-4" />
-    </button>
-    </div>
-
-    {/* Description */}
-    {description && (
-    <p className="mb-3 line-clamp-2 text-xs text-gray-500">
-        {description}
-    </p>
-    )}
-
-    {/* Type & Priority */}
-    <div className="mb-3 flex flex-wrap items-center gap-2">
-    <span
-        className={`rounded px-2 py-1 text-[10px] font-semibold ${
-        typeStyles[type] || "bg-gray-50 text-gray-700"
-        }`}
-    >
-        {type}
-    </span>
-
-    <span
-        className={`rounded px-2 py-1 text-[10px] font-semibold ${
-        priorityStyles[priority] || "bg-gray-50 text-gray-700"
-        }`}
-    >
-        {priority}
-    </span>
-    </div>
-
-    {/* Status */}
-    <div className="mb-3">
-        <select
-            value={status}
-            onChange={(e) => {
-                e.stopPropagation();
-                onStatusChange?.(e.target.value);
-            }}
-            onClick={(e) => e.stopPropagation()}
-            className="h-8 rounded-md border border-gray-200 bg-white px-2 text-xs text-gray-600 outline-none focus:border-blue-500"
+    return (
+        <div
+            onClick={onClick}
+            className="group relative cursor-pointer rounded-lg border border-gray-200 bg-white p-4 shadow-sm transition-all hover:border-blue-400 hover:shadow-md"
         >
-            <option value="TODO">To Do</option>
-            <option value="IN_PROGRESS">In Progress</option>
-            <option value="IN_REVIEW">In Review</option>
-            <option value="DONE">Done</option>
-        </select>
-    </div>
+            {/* Title */}
+            <h3 className="mb-3 text-sm font-semibold leading-snug text-gray-900">
+                {title}
+            </h3>
 
-    {/* Bottom section */}
-    <div className="flex items-center justify-between border-t border-gray-100 pt-3">
-    <div className="flex items-center gap-2">
-        {assignee ? (
-        <>
-            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-100 text-blue-600">
-            <User className="h-3 w-3" />
+            {/* Description if present */}
+            {description && (
+                <p className="mb-3 line-clamp-2 text-xs text-gray-500">
+                    {description}
+                </p>
+            )}
+
+            {/* Bottom Row */}
+            <div className="flex items-center justify-between pt-1">
+
+                {/* Left: Type Icon + Key + Assignee */}
+                <div className="flex items-center gap-2">
+                    {getTypeIcon(type)}
+
+                    <span className="text-xs font-semibold text-gray-600">
+                        {displayKey}
+                    </span>
+
+                    {/* Assignee Avatar & Name */}
+                    <div className="ml-1 flex items-center gap-1.5">
+                        <img
+                            src="https://i.pravatar.cc/150?u=john"
+                            alt={assignee}
+                            className="h-5 w-5 rounded-full object-cover"
+                        />
+                        <span className="text-xs text-gray-500">
+                            {assignee}
+                        </span>
+                    </div>
+                </div>
+
+                {/* Right: Priority Badge & Quick Status Selector */}
+                <div className="flex items-center gap-2">
+                    {getPriorityBadge(priority)}
+
+                    <select
+                        value={status}
+                        onChange={(e) => {
+                            e.stopPropagation();
+                            onStatusChange?.(e.target.value);
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                        className="h-6 rounded border border-gray-200 bg-gray-50 px-1 text-[10px] font-medium text-gray-600 opacity-0 transition group-hover:opacity-100 hover:bg-white"
+                    >
+                        <option value="TODO">To Do</option>
+                        <option value="IN_PROGRESS">In Progress</option>
+                        <option value="IN_REVIEW">In Review</option>
+                        <option value="DONE">Done</option>
+                    </select>
+                </div>
+
             </div>
-
-            <span className="max-w-25 truncate text-xs text-gray-500">
-            {assignee}
-            </span>
-        </>
-        ) : (
-        <span className="text-xs text-gray-400">
-            Unassigned
-        </span>
-        )}
-    </div>
-
-    {dueDate && (
-        <div className="flex items-center gap-1 text-xs text-gray-400">
-        <CalendarDays className="h-3.5 w-3.5" />
-        <span>{dueDate}</span>
         </div>
-    )}
-    </div>
-</div>
-);
+    );
 };
 
 export default KanbanCard;

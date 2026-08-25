@@ -1,310 +1,229 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-
 import KanbanCard from "@/components/KanbanCard";
+import { Share2, MoreHorizontal, Plus } from "lucide-react";
 import CreateIssueModal from "@/components/CreateIssueModel";
 import IssueDetailsModel from "@/components/IssueDetailsModel";
 
-import { Plus } from "lucide-react";
+interface Assignee {
+    _id: string;
+    name: string;
+    email: string;
+}
 
 interface Issue {
     _id?: string;
     id?: string;
     key?: string;
-
     title: string;
     description?: string;
     type?: string;
     priority?: string;
     status: string;
-
-    projectId?: string;
-
-    assignee?:
-        | string
-        | {
-              _id: string;
-              name: string;
-              email: string;
-          };
-
+    assignee?: string | Assignee | null;
     dueDate?: string;
+    projectId?: string | object;
 }
 
-const rawApiUrl =
-    process.env.NEXT_PUBLIC_API_URL ||
-    "http://localhost:5000";
-
+const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 const API_URL = rawApiUrl.replace(/\/+$/, "");
-
 const PROJECT_ID = "6a897d9ddfcfb80e0e7cf8ab";
 
-const columns = [
+const defaultSampleIssues: Issue[] = [
     {
-        id: "TODO",
-        title: "To Do",
+        id: "PS-124",
+        _id: "PS-124",
+        key: "PS-124",
+        title: "Implement user authentication flow",
+        description: "Add JWT token authentication and user login page",
+        type: "TASK",
+        priority: "HIGH",
+        status: "TODO",
+        assignee: "John Doe",
     },
     {
-        id: "IN_PROGRESS",
-        title: "In Progress",
+        id: "PS-126",
+        _id: "PS-126",
+        key: "PS-126",
+        title: "Design system audit and cleanup",
+        description: "Review color variables and component styles",
+        type: "STORY",
+        priority: "MEDIUM",
+        status: "TODO",
+        assignee: "John Doe",
     },
     {
-        id: "IN_REVIEW",
-        title: "In Review",
-    },
-    {
-        id: "DONE",
-        title: "Done",
+        id: "PS-125",
+        _id: "PS-125",
+        key: "PS-125",
+        title: "Fix critical bug in payment processing",
+        description: "Resolve gateway timeout issue during checkout",
+        type: "BUG",
+        priority: "HIGH",
+        status: "IN_PROGRESS",
+        assignee: "John Doe",
     },
 ];
 
-const KanbanPage = () => {
-    // ============================================
-    // STATE
-    // ============================================
-
+const HomePage = () => {
     const [issues, setIssues] = useState<Issue[]>([]);
-
-    const [isLoading, setIsLoading] =
-        useState(true);
-
+    const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState("");
-
-    const [showCreateIssueModal, setShowCreateIssueModal] =
-        useState(false);
-
-    // Selected issue for Issue Details Modal
-    const [selectedIssue, setSelectedIssue] =
-        useState<Issue | null>(null);
-
-    // ============================================
-    // FETCH ISSUES
-    // ============================================
+    const [showCreateModal, setShowCreateModal] = useState(false);
+    const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null);
+    const [activeFilter, setActiveFilter] = useState<"ALL" | "MY" | "RECENT">("ALL");
 
     const fetchIssues = async () => {
         try {
             setIsLoading(true);
             setError("");
 
-            const response = await fetch(
-                `${API_URL}/api/issues`
-            );
-
+            const response = await fetch(`${API_URL}/api/issues`);
             const data = await response.json();
 
-            if (!response.ok) {
-                throw new Error(
-                    data.message ||
-                        "Failed to fetch issues"
-                );
+            if (response.ok && data.data?.issues && data.data.issues.length > 0) {
+                setIssues(data.data.issues);
+            } else {
+                setIssues(defaultSampleIssues);
             }
-
-            console.log(
-                "Issues API response:",
-                data
-            );
-
-            const fetchedIssues =
-                data.data?.issues ||
-                data.issues ||
-                [];
-
-            setIssues(fetchedIssues);
-        } catch (error) {
-            console.error(
-                "Fetch issues error:",
-                error
-            );
-
-            setError(
-                error instanceof Error
-                    ? error.message
-                    : "Failed to load issues"
-            );
+        } catch (err) {
+            console.error("Fetch issues error:", err);
+            setIssues(defaultSampleIssues);
         } finally {
             setIsLoading(false);
         }
     };
 
-    // ============================================
-    // INITIAL LOAD
-    // ============================================
-
     useEffect(() => {
         fetchIssues();
     }, []);
 
-    // ============================================
-    // CREATE ISSUE SUCCESS
-    // ============================================
-
-    const handleIssueCreated = (
-        newIssue: Issue
-    ) => {
-        console.log(
-            "New issue created:",
-            newIssue
-        );
-
-        setIssues((currentIssues) => [
-            newIssue,
-            ...currentIssues,
-        ]);
-
-        setShowCreateIssueModal(false);
-    };
-
-    // ============================================
-    // UPDATE ISSUE STATUS
-    // ============================================
-
-    const updateIssueStatus = async (
-        issueId: string,
-        newStatus: string
-    ) => {
+    const updateIssueStatus = async (issueId: string, newStatus: string) => {
         try {
-            console.log(
-                "Updating issue status:",
-                issueId,
-                newStatus
-            );
-
-            const response = await fetch(
-                `${API_URL}/api/issues/${issueId}`,
-                {
-                    method: "PUT",
-
-                    headers: {
-                        "Content-Type":
-                            "application/json",
-                    },
-
-                    body: JSON.stringify({
-                        status: newStatus,
-                    }),
-                }
-            );
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(
-                    data.message ||
-                        "Failed to update issue status"
-                );
-            }
-
-            console.log(
-                "Issue status updated:",
-                data
-            );
-
-            // Update issue on board
-            setIssues((currentIssues) =>
-                currentIssues.map((issue) => {
-                    const currentIssueId =
-                        issue._id ||
-                        issue.id ||
-                        issue.key ||
-                        "";
-
-                    if (
-                        currentIssueId ===
-                        issueId
-                    ) {
-                        return {
-                            ...issue,
-                            status: newStatus,
-                        };
+            setIssues((prev) =>
+                prev.map((issue) => {
+                    const currentId = issue._id || issue.id || issue.key;
+                    if (currentId === issueId) {
+                        return { ...issue, status: newStatus };
                     }
-
                     return issue;
                 })
             );
 
-            // Update selected issue if modal is open
-            setSelectedIssue((currentIssue) => {
-                if (!currentIssue) {
-                    return currentIssue;
-                }
-
-                const currentIssueId =
-                    currentIssue._id ||
-                    currentIssue.id ||
-                    currentIssue.key ||
-                    "";
-
-                if (
-                    currentIssueId !==
-                    issueId
-                ) {
-                    return currentIssue;
-                }
-
-                return {
-                    ...currentIssue,
-                    status: newStatus,
-                };
+            await fetch(`${API_URL}/api/issues/${issueId}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ status: newStatus }),
             });
-        } catch (error) {
-            console.error(
-                "Update issue status error:",
-                error
-            );
-
-            alert(
-                error instanceof Error
-                    ? error.message
-                    : "Failed to update issue status"
-            );
+        } catch (err) {
+            console.error("Update issue status error:", err);
         }
     };
 
-    // ============================================
-    // OPEN ISSUE DETAILS
-    // ============================================
-
-    const handleIssueClick = (
-        issue: Issue
-    ) => {
-        console.log(
-            "OPENING ISSUE:",
-            issue
-        );
-
-        setSelectedIssue(issue);
+    const handleIssueCreated = (newIssue: Issue) => {
+        setIssues((prev) => [newIssue, ...prev]);
+        setShowCreateModal(false);
     };
 
-    // ============================================
-    // LOADING
-    // ============================================
+    const columns = [
+        { id: "TODO", title: "TO DO" },
+        { id: "IN_PROGRESS", title: "IN PROGRESS" },
+        { id: "IN_REVIEW", title: "IN REVIEW" },
+        { id: "DONE", title: "DONE" },
+    ];
 
-    if (isLoading) {
-        return (
-            <div className="min-h-screen bg-gray-50 p-6">
-                <div className="p-8">
-                    <p className="text-gray-500">
-                        Loading issues...
-                    </p>
-                </div>
-            </div>
-        );
-    }
-
-    // ============================================
-    // PAGE
-    // ============================================
+    const filteredIssues = issues.filter((issue) => {
+        if (activeFilter === "MY") {
+            const assigneeName = typeof issue.assignee === "object" ? issue.assignee?.name : issue.assignee;
+            return assigneeName === "John Doe" || assigneeName === "Naveen";
+        }
+        return true;
+    });
 
     return (
-        <div className="min-h-screen bg-gray-50 p-6">
+        <div className="min-h-screen bg-slate-50 p-6 md:p-8">
+
+            {/* Breadcrumb Navigation */}
+            <div className="mb-4 flex items-center justify-between text-xs text-gray-500">
+                <div className="flex items-center gap-1">
+                    <span>Projects</span>
+                    <span>&gt;</span>
+                    <span>Platform Services</span>
+                    <span>&gt;</span>
+                    <span className="font-semibold text-gray-700">Kanban Board</span>
+                </div>
+
+                <div className="flex items-center gap-3">
+                    <button className="rounded p-1 text-gray-400 hover:bg-gray-200 hover:text-gray-700">
+                        <Share2 className="h-4 w-4" />
+                    </button>
+                    <button className="rounded p-1 text-gray-400 hover:bg-gray-200 hover:text-gray-700">
+                        <MoreHorizontal className="h-4 w-4" />
+                    </button>
+                </div>
+            </div>
+
+            {/* Title */}
+            <div className="mb-6">
+                <h1 className="text-2xl font-bold text-gray-900">Kanban Board</h1>
+            </div>
+
+            {/* Filter Row */}
+            <div className="mb-8 flex flex-wrap items-center gap-4">
+
+                {/* User Avatars Group */}
+                <div className="flex items-center -space-x-2 overflow-hidden">
+                    <img
+                        className="inline-block h-8 w-8 rounded-full ring-2 ring-white object-cover"
+                        src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150"
+                        alt="Member"
+                    />
+                    <img
+                        className="inline-block h-8 w-8 rounded-full ring-2 ring-white object-cover"
+                        src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150"
+                        alt="Member"
+                    />
+                    <img
+                        className="inline-block h-8 w-8 rounded-full ring-2 ring-white object-cover"
+                        src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150"
+                        alt="Member"
+                    />
+                    <img
+                        className="inline-block h-8 w-8 rounded-full ring-2 ring-white object-cover"
+                        src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150"
+                        alt="Member"
+                    />
+                </div>
+
+                {/* Filter Pill Buttons */}
+                <button
+                    onClick={() => setActiveFilter(activeFilter === "MY" ? "ALL" : "MY")}
+                    className={`rounded-full px-4 py-1.5 text-xs font-semibold transition ${
+                        activeFilter === "MY"
+                            ? "bg-blue-600 text-white shadow-sm"
+                            : "bg-white text-gray-700 border border-gray-200 hover:bg-gray-100"
+                    }`}
+                >
+                    Only My Issues
+                </button>
+
+                <button
+                    onClick={() => setActiveFilter(activeFilter === "RECENT" ? "ALL" : "RECENT")}
+                    className={`rounded-full px-4 py-1.5 text-xs font-semibold transition ${
+                        activeFilter === "RECENT"
+                            ? "bg-blue-600 text-white shadow-sm"
+                            : "bg-white text-gray-700 border border-gray-200 hover:bg-gray-100"
+                    }`}
+                >
+                    Recently Updated
+                </button>
+            </div>
 
             {/* Error Banner if any */}
             {error && (
                 <div className="mb-6 flex items-center justify-between rounded-md bg-red-50 p-4 border border-red-200">
-                    <p className="text-sm font-medium text-red-600">
-                        Notice: {error}
-                    </p>
+                    <p className="text-sm font-medium text-red-600">Notice: {error}</p>
                     <button
                         type="button"
                         onClick={fetchIssues}
@@ -315,199 +234,81 @@ const KanbanPage = () => {
                 </div>
             )}
 
-            {/* ========================================
-                HEADER
-            ======================================== */}
-
-            <div className="mb-6 flex items-start justify-between">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-900">
-                        Kanban Board
-                    </h1>
-
-                    <p className="mt-1 text-sm text-gray-500">
-                        Manage your project issues and
-                        track their progress.
-                    </p>
-                </div>
-
-                {/* Create Issue Button */}
-
-                <button
-                    type="button"
-                    onClick={() =>
-                        setShowCreateIssueModal(true)
-                    }
-                    className="flex items-center gap-2 rounded-md bg-[#0052CC] px-4 py-2 text-sm font-medium text-white hover:bg-[#0747A6]"
-                >
-                    <Plus className="h-4 w-4" />
-
-                    Create Issue
-                </button>
-            </div>
-
-            {/* ========================================
-                KANBAN BOARD
-            ======================================== */}
-
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-
+            {/* Kanban Columns */}
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
                 {columns.map((column) => {
-                    const columnIssues =
-                        issues.filter(
-                            (issue) =>
-                                issue.status ===
-                                column.id
-                        );
+                    const columnIssues = filteredIssues.filter(
+                        (issue) => issue.status === column.id
+                    );
 
                     return (
                         <div
                             key={column.id}
-                            className="rounded-lg bg-gray-100 p-3"
+                            className="flex flex-col rounded-xl bg-slate-100/80 p-3 min-h-[500px]"
                         >
                             {/* Column Header */}
-
-                            <div className="mb-3 flex items-center justify-between">
-                                <h2 className="text-sm font-semibold text-gray-700">
-                                    {column.title}
+                            <div className="mb-4 px-1 pt-1">
+                                <h2 className="text-xs font-bold uppercase tracking-wider text-gray-500">
+                                    {column.title} ({columnIssues.length})
                                 </h2>
-
-                                <span className="rounded-full bg-white px-2 py-1 text-xs font-medium text-gray-500">
-                                    {
-                                        columnIssues.length
-                                    }
-                                </span>
                             </div>
 
-                            {/* Cards */}
+                            {/* Cards Area */}
+                            <div className="flex flex-1 flex-col gap-3">
+                                {columnIssues.map((issue, index) => {
+                                    const issueId =
+                                        issue._id || issue.id || issue.key || `issue-${index}`;
 
-                            <div className="flex min-h-32 flex-col gap-3">
-
-                                {columnIssues.map(
-                                    (issue) => {
-                                        const issueId =
-                                            issue._id ||
-                                            issue.id ||
-                                            issue.key ||
-                                            "";
-
-                                        return (
-                                            <KanbanCard
-                                                key={
-                                                    issueId
-                                                }
-
-                                                id={
-                                                    issueId
-                                                }
-
-                                                title={
-                                                    issue.title
-                                                }
-
-                                                description={
-                                                    issue.description
-                                                }
-
-                                                type={
-                                                    issue.type
-                                                }
-
-                                                priority={
-                                                    issue.priority
-                                                }
-
-                                                status={
-                                                    issue.status
-                                                }
-
-                                                assignee={
-                                                    typeof issue.assignee ===
-                                                    "object"
-                                                        ? issue
-                                                              .assignee
-                                                              ?.name
-                                                        : issue.assignee
-                                                }
-
-                                                dueDate={
-                                                    issue.dueDate
-                                                }
-
-                                                onStatusChange={(
-                                                    newStatus
-                                                ) =>
-                                                    updateIssueStatus(
-                                                        issueId,
-                                                        newStatus
-                                                    )
-                                                }
-
-                                                onClick={() =>
-                                                    handleIssueClick(
-                                                        issue
-                                                    )
-                                                }
-                                            />
-                                        );
+                                    let assigneeName = "John Doe";
+                                    if (typeof issue.assignee === "string") {
+                                        assigneeName = issue.assignee;
+                                    } else if (issue.assignee && typeof issue.assignee === "object") {
+                                        assigneeName = issue.assignee.name || "John Doe";
                                     }
-                                )}
 
-                                {/* Empty Column */}
+                                    return (
+                                        <KanbanCard
+                                            key={issueId}
+                                            id={issueId}
+                                            title={issue.title}
+                                            description={issue.description}
+                                            status={issue.status}
+                                            type={issue.type || "TASK"}
+                                            priority={issue.priority || "MEDIUM"}
+                                            assignee={assigneeName}
+                                            onStatusChange={(newStatus) =>
+                                                updateIssueStatus(issueId, newStatus)
+                                            }
+                                            dueDate={issue.dueDate}
+                                            onClick={() => setSelectedIssue(issue)}
+                                        />
+                                    );
+                                })}
 
-                                {columnIssues.length ===
-                                    0 && (
-                                    <div className="flex min-h-24 items-center justify-center rounded-md border-2 border-dashed border-gray-300">
-                                        <p className="text-xs text-gray-400">
-                                            No issues
-                                        </p>
+                                {columnIssues.length === 0 && (
+                                    <div className="flex min-h-28 items-center justify-center rounded-lg border border-dashed border-gray-300 bg-white/50">
+                                        <p className="text-xs text-gray-400">No issues</p>
                                     </div>
                                 )}
-
                             </div>
                         </div>
                     );
                 })}
-
             </div>
 
-            {/* ========================================
-                CREATE ISSUE MODAL
-            ======================================== */}
-
+            {/* Create Issue Modal */}
             <CreateIssueModal
-                isOpen={
-                    showCreateIssueModal
-                }
-
-                onClose={() =>
-                    setShowCreateIssueModal(
-                        false
-                    )
-                }
-
-                projectId={
-                    PROJECT_ID
-                }
-
-                onCreate={
-                    handleIssueCreated
-                }
+                isOpen={showCreateModal}
+                onClose={() => setShowCreateModal(false)}
+                projectId={PROJECT_ID}
+                onCreate={handleIssueCreated}
             />
 
-            {/* ========================================
-                ISSUE DETAILS MODAL
-            ======================================== */}
-
+            {/* Issue Details Modal */}
             {selectedIssue && (
                 <IssueDetailsModel
-                    issue={
-                        selectedIssue
-                    }
-
-                    onClose={() =>
-                        setSelectedIssue(null)
-                    }
+                    issue={selectedIssue}
+                    onClose={() => setSelectedIssue(null)}
                 />
             )}
 
@@ -515,4 +316,4 @@ const KanbanPage = () => {
     );
 };
 
-export default KanbanPage;
+export default HomePage;
