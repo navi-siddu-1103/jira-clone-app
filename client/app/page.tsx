@@ -2,10 +2,11 @@
 
 import React, { useEffect, useState } from "react";
 import KanbanCard from "@/components/KanbanCard";
-import { Share2, MoreHorizontal, Plus } from "lucide-react";
+import { Share2, MoreHorizontal } from "lucide-react";
 import CreateIssueModal from "@/components/CreateIssueModel";
 import IssueDetailsModel from "@/components/IssueDetailsModel";
 import type { Issue } from "@/types";
+import { useAuth } from "@/context/AuthContext";
 
 
 const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
@@ -49,16 +50,28 @@ const defaultSampleIssues: Issue[] = [
 ];
 
 const HomePage = () => {
+    const { user } = useAuth();
     const [issues, setIssues] = useState<Issue[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState("");
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null);
     const [activeFilter, setActiveFilter] = useState<"ALL" | "MY" | "RECENT">("ALL");
+    const [searchQuery, setSearchQuery] = useState("");
     /** The column ID currently being dragged over, for highlight feedback */
     const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
 
     const [currentProjectName, setCurrentProjectName] = useState("Platform Services");
+
+    // Listen for search queries dispatched by the Sidebar
+    useEffect(() => {
+        const handleSearch = (e: Event) => {
+            const query = (e as CustomEvent<{ query: string }>).detail?.query ?? "";
+            setSearchQuery(query);
+        };
+        window.addEventListener("issue_search", handleSearch);
+        return () => window.removeEventListener("issue_search", handleSearch);
+    }, []);
 
     useEffect(() => {
         const loadProject = () => {
@@ -162,10 +175,35 @@ const HomePage = () => {
     ];
 
     const filteredIssues = issues.filter((issue) => {
+        // ── "Only My Issues" filter ──────────────────────────────────────────
         if (activeFilter === "MY") {
-            const assigneeName = typeof issue.assignee === "object" ? issue.assignee?.name : issue.assignee;
-            return assigneeName === "John Doe" || assigneeName === "Naveen";
+            const assigneeName =
+                typeof issue.assignee === "object"
+                    ? issue.assignee?.name
+                    : issue.assignee;
+            const assigneeEmail =
+                typeof issue.assignee === "object"
+                    ? issue.assignee?.email
+                    : undefined;
+
+            const matchesUser =
+                (user?.name && assigneeName?.toLowerCase() === user.name.toLowerCase()) ||
+                (user?.email && assigneeEmail?.toLowerCase() === user.email.toLowerCase()) ||
+                (user?.id && (issue as any).createdBy === user.id) ||
+                (user?.id && (issue as any).reporterId === user.id);
+
+            if (!matchesUser) return false;
         }
+
+        // ── Search filter ────────────────────────────────────────────────────
+        if (searchQuery) {
+            const q = searchQuery.toLowerCase();
+            const titleMatch = issue.title?.toLowerCase().includes(q);
+            const descMatch = issue.description?.toLowerCase().includes(q);
+            const keyMatch = (issue.key || issue.id || issue._id)?.toLowerCase().includes(q);
+            if (!titleMatch && !descMatch && !keyMatch) return false;
+        }
+
         return true;
     });
 

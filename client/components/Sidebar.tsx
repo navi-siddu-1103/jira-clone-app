@@ -263,8 +263,16 @@ const Sidebar = () => {
                             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
 
                             <Input
-                                placeholder="Search"
+                                placeholder="Search issues…"
                                 className="pl-9"
+                                onChange={(e) => {
+                                    const query = e.target.value.trim();
+                                    window.dispatchEvent(
+                                        new CustomEvent("issue_search", {
+                                            detail: { query },
+                                        })
+                                    );
+                                }}
                             />
                         </div>
                     </div>
