@@ -16,26 +16,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import CreateIssueModal from "@/components/CreateIssueModel";
 import IssueDetailsModel from "@/components/IssueDetailsModel";
+import type { Issue } from "@/types";
 
-type Issue = {
-    _id?: string;
-    id?: string;
-    key?: string;
-    title: string;
-    description?: string;
-    type?: string;
-    priority?: string;
-    status?: string;
-    assignee?:
-        | string
-        | {
-              _id?: string;
-              name?: string;
-              email?: string;
-          }
-        | null;
-    dueDate?: string;
-};
 
 const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 const API_URL = rawApiUrl.replace(/\/+$/, "");

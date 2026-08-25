@@ -1,56 +1,27 @@
 "use client";
 
 import React from "react";
-
-import {
-    X,
-    User,
-    CalendarDays,
-    CircleDot,
-} from "lucide-react";
-
-interface Issue {
-    _id?: string;
-    id?: string;
-    key?: string;
-    title: string;
-    description?: string;
-    type?: string;
-    priority?: string;
-    status: string;
-    assignee?:
-        | string
-        | {
-              _id: string;
-              name: string;
-              email: string;
-          };
-    dueDate?: string;
-}
+import { X, User, CalendarDays, CircleDot } from "lucide-react";
+import type { Issue } from "@/types";
 
 interface IssueDetailsModalProps {
     issue: Issue;
     onClose: () => void;
 }
 
-const IssueDetailsModal = ({
-    issue,
-    onClose,
-}: IssueDetailsModalProps) => {
-    const issueId =
-        issue._id ||
-        issue.id ||
-        issue.key ||
-        "";
+const IssueDetailsModal = ({ issue, onClose }: IssueDetailsModalProps) => {
+    const issueId = issue._id || issue.id || issue.key || "";
 
     const assigneeName =
-        typeof issue.assignee === "object"
-            ? issue.assignee?.name
-            : issue.assignee;
+        typeof issue.assignee === "object" && issue.assignee !== null
+            ? issue.assignee.name
+            : typeof issue.assignee === "string"
+            ? issue.assignee
+            : undefined;
 
     const assigneeEmail =
-        typeof issue.assignee === "object"
-            ? issue.assignee?.email
+        typeof issue.assignee === "object" && issue.assignee !== null
+            ? issue.assignee.email
             : undefined;
 
     const priorityStyles: Record<string, string> = {
@@ -74,9 +45,11 @@ const IssueDetailsModal = ({
         DONE: "Done",
     };
 
+    const currentStatus = issue.status || "TODO";
+
     return (
         <div
-            className="fixed inset-0 z-100 flex items-center justify-center bg-black/50 p-4"
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4"
             onClick={onClose}
         >
             <div
@@ -89,16 +62,11 @@ const IssueDetailsModal = ({
                         <p className="mb-1 text-xs font-medium text-gray-400">
                             {issueId}
                         </p>
-
                         <h2 className="text-xl font-bold text-gray-900">
                             {issue.title}
                         </h2>
-
-                        <p className="mt-1 text-sm text-gray-500">
-                            Issue Details
-                        </p>
+                        <p className="mt-1 text-sm text-gray-500">Issue Details</p>
                     </div>
-
                     <button
                         type="button"
                         onClick={onClose}
@@ -109,36 +77,29 @@ const IssueDetailsModal = ({
                 </div>
 
                 {/* Body */}
-                <div className="max-h-[70vh] overflow-y-auto space-y-6 px-6 py-6">
+                <div className="max-h-[70vh] space-y-6 overflow-y-auto px-6 py-6">
 
                     {/* Description */}
                     <div>
                         <h3 className="mb-2 text-sm font-semibold text-gray-700">
                             Description
                         </h3>
-
                         <div className="rounded-lg bg-gray-50 p-4">
                             <p className="text-sm leading-6 text-gray-600">
-                                {issue.description ||
-                                    "No description provided."}
+                                {issue.description || "No description provided."}
                             </p>
                         </div>
                     </div>
 
                     {/* Type / Priority / Status */}
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-
                         <div>
                             <p className="mb-2 text-xs font-medium text-gray-500">
                                 Issue Type
                             </p>
-
                             <span
                                 className={`inline-flex rounded-md px-3 py-1.5 text-xs font-semibold ${
-                                    typeStyles[
-                                        issue.type || "TASK"
-                                    ] ||
-                                    "bg-gray-50 text-gray-700"
+                                    typeStyles[issue.type || "TASK"] || "bg-gray-50 text-gray-700"
                                 }`}
                             >
                                 {issue.type || "TASK"}
@@ -149,12 +110,9 @@ const IssueDetailsModal = ({
                             <p className="mb-2 text-xs font-medium text-gray-500">
                                 Priority
                             </p>
-
                             <span
                                 className={`inline-flex rounded-md px-3 py-1.5 text-xs font-semibold ${
-                                    priorityStyles[
-                                        issue.priority || "MEDIUM"
-                                    ] ||
+                                    priorityStyles[issue.priority || "MEDIUM"] ||
                                     "bg-gray-50 text-gray-700"
                                 }`}
                             >
@@ -166,35 +124,27 @@ const IssueDetailsModal = ({
                             <p className="mb-2 text-xs font-medium text-gray-500">
                                 Status
                             </p>
-
                             <span className="inline-flex items-center gap-1.5 rounded-md bg-gray-100 px-3 py-1.5 text-xs font-semibold text-gray-700">
                                 <CircleDot className="h-3.5 w-3.5" />
-
-                                {statusLabels[issue.status] ||
-                                    issue.status}
+                                {statusLabels[currentStatus] || currentStatus}
                             </span>
                         </div>
                     </div>
 
                     {/* Assignee / Due Date */}
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-
-                        {/* Assignee */}
                         <div className="rounded-lg border border-gray-200 p-4">
                             <div className="mb-3 flex items-center gap-2">
                                 <User className="h-4 w-4 text-gray-500" />
-
                                 <h3 className="text-sm font-semibold text-gray-700">
                                     Assignee
                                 </h3>
                             </div>
-
                             {assigneeName ? (
                                 <div>
                                     <p className="text-sm font-medium text-gray-900">
                                         {assigneeName}
                                     </p>
-
                                     {assigneeEmail && (
                                         <p className="mt-1 text-xs text-gray-500">
                                             {assigneeEmail}
@@ -202,29 +152,20 @@ const IssueDetailsModal = ({
                                     )}
                                 </div>
                             ) : (
-                                <p className="text-sm text-gray-400">
-                                    Unassigned
-                                </p>
+                                <p className="text-sm text-gray-400">Unassigned</p>
                             )}
                         </div>
 
-                        {/* Due Date */}
                         <div className="rounded-lg border border-gray-200 p-4">
                             <div className="mb-3 flex items-center gap-2">
                                 <CalendarDays className="h-4 w-4 text-gray-500" />
-
                                 <h3 className="text-sm font-semibold text-gray-700">
                                     Due Date
                                 </h3>
                             </div>
-
                             <p className="text-sm text-gray-600">
                                 {issue.dueDate
-                                    ? new Date(
-                                          issue.dueDate
-                                      ).toLocaleDateString(
-                                          "en-GB"
-                                      )
+                                    ? new Date(issue.dueDate).toLocaleDateString("en-GB")
                                     : "No due date"}
                             </p>
                         </div>

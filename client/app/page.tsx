@@ -5,26 +5,8 @@ import KanbanCard from "@/components/KanbanCard";
 import { Share2, MoreHorizontal, Plus } from "lucide-react";
 import CreateIssueModal from "@/components/CreateIssueModel";
 import IssueDetailsModel from "@/components/IssueDetailsModel";
+import type { Issue } from "@/types";
 
-interface Assignee {
-    _id: string;
-    name: string;
-    email: string;
-}
-
-interface Issue {
-    _id?: string;
-    id?: string;
-    key?: string;
-    title: string;
-    description?: string;
-    type?: string;
-    priority?: string;
-    status: string;
-    assignee?: string | Assignee | null;
-    dueDate?: string;
-    projectId?: string | object;
-}
 
 const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 const API_URL = rawApiUrl.replace(/\/+$/, "");
@@ -272,7 +254,7 @@ const HomePage = () => {
                                             id={issueId}
                                             title={issue.title}
                                             description={issue.description}
-                                            status={issue.status}
+                                            status={issue.status ?? "TODO"}
                                             type={issue.type || "TASK"}
                                             priority={issue.priority || "MEDIUM"}
                                             assignee={assigneeName}

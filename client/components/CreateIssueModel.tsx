@@ -7,11 +7,13 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
+import type { Issue } from "@/types";
+
 interface CreateIssueModelProps {
     isOpen: boolean;
     onClose: () => void;
     projectId: string;
-    onCreate?: (issue: any) => void;
+    onCreate?: (issue: Issue) => void;
 }
 
 const rawApiUrl =
