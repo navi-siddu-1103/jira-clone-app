@@ -9,6 +9,11 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.mongodb.config.AbstractMongoClientConfiguration;
 
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
+import java.security.cert.X509Certificate;
+
 @Configuration
 public class MongoConfig extends AbstractMongoClientConfiguration {
 
@@ -31,10 +36,34 @@ public class MongoConfig extends AbstractMongoClientConfiguration {
     public MongoClient mongoClient() {
         String sanitizedUri = getSanitizedUri();
         ConnectionString connectionString = new ConnectionString(sanitizedUri);
-        MongoClientSettings mongoClientSettings = MongoClientSettings.builder()
-                .applyConnectionString(connectionString)
-                .build();
-        return MongoClients.create(mongoClientSettings);
+
+        MongoClientSettings.Builder builder = MongoClientSettings.builder()
+                .applyConnectionString(connectionString);
+
+        if (sanitizedUri.startsWith("mongodb+srv://") || sanitizedUri.contains("ssl=true") || sanitizedUri.contains("tls=true")) {
+            try {
+                TrustManager[] trustAllCerts = new TrustManager[]{
+                    new X509TrustManager() {
+                        public X509Certificate[] getAcceptedIssuers() { return new X509Certificate[0]; }
+                        public void checkClientTrusted(X509Certificate[] certs, String authType) {}
+                        public void checkServerTrusted(X509Certificate[] certs, String authType) {}
+                    }
+                };
+
+                SSLContext sslContext = SSLContext.getInstance("TLS");
+                sslContext.init(null, trustAllCerts, new java.security.SecureRandom());
+
+                builder.applyToSslSettings(ssl -> {
+                    ssl.enabled(true);
+                    ssl.context(sslContext);
+                    ssl.invalidHostNameAllowed(true);
+                });
+            } catch (Exception e) {
+                System.err.println("SSL context init warning: " + e.getMessage());
+            }
+        }
+
+        return MongoClients.create(builder.build());
     }
 
     private String getSanitizedUri() {
@@ -45,11 +74,9 @@ public class MongoConfig extends AbstractMongoClientConfiguration {
         String uri = rawUri.trim();
 
         try {
-            // Test if connection string is already valid
             new ConnectionString(uri);
             return uri;
         } catch (Exception e) {
-            // Auto-encode unencoded special characters in credentials
             return autoEncodeUriCredentials(uri);
         }
     }
@@ -79,7 +106,6 @@ public class MongoConfig extends AbstractMongoClientConfiguration {
                 String username = userInfo.substring(0, firstColon);
                 String password = userInfo.substring(firstColon + 1);
 
-                // Replace unencoded special characters in username & password
                 String encodedUsername = username.replace("@", "%40");
                 String encodedPassword = password.replace("@", "%40")
                                                   .replace("#", "%23")
