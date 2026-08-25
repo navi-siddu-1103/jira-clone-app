@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -26,29 +26,136 @@ import {
 } from "@/components/ui/avatar";
 
 import { Button } from "@/components/ui/button";
+import CreateIssueModal from "./CreateIssueModel";
 
-import CreateIssuemodel from "./CreateIssueModel";
+
+const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || "https://jira-clone-app.onrender.com";
+const API_URL = rawApiUrl.replace(/\/+$/, "");
+
+interface SidebarProject {
+    id: string;
+    _id?: string;
+    name: string;
+    key: string;
+    description?: string;
+    owner?: string;
+}
+
+const defaultProjects: SidebarProject[] = [
+    {
+        id: "6a897d9ddfcfb80e0e7cf8ab",
+        _id: "6a897d9ddfcfb80e0e7cf8ab",
+        name: "Platform Services",
+        key: "PS",
+        description: "Core Platform infrastructure and Services",
+        owner: "Naveen",
+    },
+    {
+        id: "proj-2",
+        _id: "proj-2",
+        name: "Website Development",
+        key: "WD",
+        description: "Development and maintenance of company website",
+        owner: "John",
+    },
+    {
+        id: "proj-3",
+        _id: "proj-3",
+        name: "Mobile Application",
+        key: "MA",
+        description: "Mobile application development project",
+        owner: "David",
+    },
+];
 
 const Sidebar = () => {
     const router = useRouter();
     const { user, logout } = useAuth();
 
     const [showprojectmenu, setShowprojectmenu] = useState(false);
-    const [showcreateissuemodel, setShowcreateissuemodel] =
-        useState(false);
+    const [showcreateissuemodel, setShowcreateissuemodel] = useState(false);
 
-    const currentProject = {
-        id: "6a897d9ddfcfb80e0e7cf8ab",
-        name: "Platform Services",
-        key: "PS",
-        ownerId: "user-1",
-        memberIds: ["user-1", "user-2"],
-        createdAt: new Date().toISOString(),
-        description: "Core Platform infrastructure and Services",
+    const [projects, setProjects] = useState<SidebarProject[]>(defaultProjects);
+    const [currentProject, setCurrentProject] = useState<SidebarProject>(defaultProjects[0]);
+
+    const loadProjects = async () => {
+        let customList: SidebarProject[] = [];
+        try {
+            const storedCustom = localStorage.getItem("jira_custom_projects");
+            if (storedCustom) {
+                customList = JSON.parse(storedCustom);
+            }
+        } catch (e) {}
+
+        try {
+            const res = await fetch(`${API_URL}/api/projects`);
+            const data = await res.json();
+            if (res.ok && data.data?.projects && data.data.projects.length > 0) {
+                const apiProjects: SidebarProject[] = data.data.projects.map((p: any) => ({
+                    id: p._id || p.id || p.key,
+                    _id: p._id || p.id,
+                    name: p.name,
+                    key: p.key,
+                    description: p.description,
+                    owner: p.owner,
+                }));
+
+                const map = new Map<string, SidebarProject>();
+                defaultProjects.forEach((p) => map.set(p.key, p));
+                apiProjects.forEach((p) => map.set(p.key, p));
+                customList.forEach((p) => map.set(p.key, p));
+
+                const merged = Array.from(map.values());
+                setProjects(merged);
+
+                const storedCur = localStorage.getItem("jira_current_project");
+                if (storedCur) {
+                    const parsed = JSON.parse(storedCur);
+                    const match = merged.find((p) => (p._id && p._id === parsed._id) || p.key === parsed.key);
+                    if (match) setCurrentProject(match);
+                }
+                return;
+            }
+        } catch (e) {
+            console.warn("Could not fetch projects for sidebar:", e);
+        }
+
+        const map = new Map<string, SidebarProject>();
+        defaultProjects.forEach((p) => map.set(p.key, p));
+        customList.forEach((p) => map.set(p.key, p));
+        const merged = Array.from(map.values());
+        setProjects(merged);
+
+        const storedCur = localStorage.getItem("jira_current_project");
+        if (storedCur) {
+            try {
+                const parsed = JSON.parse(storedCur);
+                const match = merged.find((p) => (p._id && p._id === parsed._id) || p.key === parsed.key);
+                if (match) setCurrentProject(match);
+            } catch (e) {}
+        }
     };
 
-    const allproject = {
-        "6a897d9ddfcfb80e0e7cf8ab": currentProject,
+    useEffect(() => {
+        loadProjects();
+        const handleProjectEvent = () => loadProjects();
+        window.addEventListener("project_created", handleProjectEvent);
+        window.addEventListener("project_changed", handleProjectEvent);
+        window.addEventListener("storage", handleProjectEvent);
+        return () => {
+            window.removeEventListener("project_created", handleProjectEvent);
+            window.removeEventListener("project_changed", handleProjectEvent);
+            window.removeEventListener("storage", handleProjectEvent);
+        };
+    }, []);
+
+    const handleSelectProject = (project: SidebarProject) => {
+        setCurrentProject(project);
+        try {
+            localStorage.setItem("jira_current_project", JSON.stringify(project));
+            window.dispatchEvent(new Event("project_changed"));
+        } catch (e) {}
+        setShowprojectmenu(false);
     };
 
     const currentUser = user || {
@@ -57,12 +164,12 @@ const Sidebar = () => {
         email: "naveen@gmail.com",
         role: "ADMIN",
         group: "Engineering",
-        avatar: "https://i.pravatar.cc/150?u=john",
+        avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100",
         createdAt: new Date().toISOString(),
     };
 
     return (
-        <div className="flex min-h-screen w-[280px] flex-col border-r border-gray-200 bg-white">
+        <div className="flex min-h-screen w-[280px] flex-col border-r border-gray-200 bg-white shrink-0">
 
             {/* Logo */}
             <div className="flex items-center gap-3 border-b border-gray-200 px-5 py-5">
@@ -80,21 +187,21 @@ const Sidebar = () => {
                 <div className="flex-1 p-4">
 
                     {/* Project Dropdown */}
-                    <div>
+                    <div className="relative">
                         <button
                             type="button"
                             onClick={() =>
                                 setShowprojectmenu(!showprojectmenu)
                             }
-                            className="flex w-full items-center justify-between rounded-md border border-gray-300 bg-white px-4 py-3 text-left hover:border-blue-500 hover:bg-gray-50"
+                            className="flex w-full items-center justify-between rounded-md border border-gray-300 bg-white px-4 py-3 text-left hover:border-blue-500 hover:bg-gray-50 transition"
                         >
-                            <span className="text-sm font-medium text-gray-900">
+                            <span className="text-sm font-medium text-gray-900 truncate">
                                 {currentProject.name}
                             </span>
 
                             <ChevronDown
                                 size={18}
-                                className={`text-gray-500 transition-transform ${
+                                className={`text-gray-500 transition-transform shrink-0 ml-2 ${
                                     showprojectmenu
                                         ? "rotate-180"
                                         : ""
@@ -102,40 +209,47 @@ const Sidebar = () => {
                             />
                         </button>
 
-                        {/* Dropdown */}
+                        {/* Dropdown Menu */}
                         {showprojectmenu && (
-                            <div className="mt-1 w-full overflow-hidden rounded-md border border-gray-200 bg-white shadow-sm">
+                            <div className="absolute left-0 right-0 top-full z-30 mt-1 max-h-60 overflow-y-auto rounded-md border border-gray-200 bg-white shadow-lg">
 
-                                {Object.values(allproject).map(
-                                    (project) => (
+                                {projects.map((project) => {
+                                    const isSelected = project.key === currentProject.key;
+                                    return (
                                         <button
                                             type="button"
-                                            key={project.id}
-                                            onClick={() =>
-                                                setShowprojectmenu(false)
-                                            }
-                                            className="flex w-full items-center gap-2 px-3 py-3 text-left text-sm font-medium text-gray-900 hover:bg-gray-100"
+                                            key={project.key || project.id}
+                                            onClick={() => handleSelectProject(project)}
+                                            className={`flex w-full items-center justify-between px-3 py-2.5 text-left text-sm transition hover:bg-blue-50 ${
+                                                isSelected
+                                                    ? "bg-blue-50/70 font-semibold text-blue-700"
+                                                    : "font-medium text-gray-800"
+                                            }`}
                                         >
-                                            <div className="h-3 w-3 rounded-full bg-blue-500" />
-
-                                            {project.name}
+                                            <div className="flex items-center gap-2 min-w-0">
+                                                <div className={`h-2.5 w-2.5 rounded-full shrink-0 ${
+                                                    isSelected ? "bg-blue-600" : "bg-gray-300"
+                                                }`} />
+                                                <span className="truncate">{project.name}</span>
+                                            </div>
+                                            <span className="text-[11px] uppercase font-mono text-gray-400 shrink-0 ml-2">
+                                                {project.key}
+                                            </span>
                                         </button>
-                                    )
-                                )}
+                                    );
+                                })}
 
-                                {/* Create Project */}
-                                <div className="border-t border-gray-200 px-3 py-2">
+                                {/* Create Project Button */}
+                                <div className="border-t border-gray-100 bg-gray-50/50 px-3 py-2">
                                     <button
                                         type="button"
-                                        onClick={() =>
-                                            router.push(
-                                                "/projects/create"
-                                            )
-                                        }
+                                        onClick={() => {
+                                            setShowprojectmenu(false);
+                                            router.push("/projects/create");
+                                        }}
                                         className="flex w-full items-center gap-2 text-left text-sm font-medium text-blue-600 hover:text-blue-700"
                                     >
                                         <Plus className="h-4 w-4" />
-
                                         Create Project
                                     </button>
                                 </div>
@@ -258,7 +372,7 @@ const Sidebar = () => {
             )}
 
             {/* Create Issue Modal */}
-            <CreateIssuemodel
+            <CreateIssueModal
                 isOpen={showcreateissuemodel}
                 onClose={() =>
                     setShowcreateissuemodel(false)

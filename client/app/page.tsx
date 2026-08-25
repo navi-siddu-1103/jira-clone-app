@@ -56,6 +56,23 @@ const HomePage = () => {
     const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null);
     const [activeFilter, setActiveFilter] = useState<"ALL" | "MY" | "RECENT">("ALL");
 
+    const [currentProjectName, setCurrentProjectName] = useState("Platform Services");
+
+    useEffect(() => {
+        const loadProject = () => {
+            try {
+                const stored = localStorage.getItem("jira_current_project");
+                if (stored) {
+                    const parsed = JSON.parse(stored);
+                    if (parsed?.name) setCurrentProjectName(parsed.name);
+                }
+            } catch (e) {}
+        };
+        loadProject();
+        window.addEventListener("project_changed", loadProject);
+        return () => window.removeEventListener("project_changed", loadProject);
+    }, []);
+
     const fetchIssues = async () => {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 8000); // 8s timeout for cold Render starts
@@ -143,9 +160,9 @@ const HomePage = () => {
                 <div className="flex items-center gap-1">
                     <span>Projects</span>
                     <span>&gt;</span>
-                    <span>Platform Services</span>
+                    <span className="font-medium text-gray-700">{currentProjectName}</span>
                     <span>&gt;</span>
-                    <span className="font-semibold text-gray-700">Kanban Board</span>
+                    <span className="font-semibold text-blue-600">Kanban Board</span>
                 </div>
 
                 <div className="flex items-center gap-3">
@@ -216,66 +233,68 @@ const HomePage = () => {
 
 
 
-            {/* Kanban Columns */}
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
-                {columns.map((column) => {
-                    const columnIssues = filteredIssues.filter(
-                        (issue) => issue.status === column.id
-                    );
+            {/* Kanban Columns with Horizontal Scroll Support */}
+            <div className="overflow-x-auto pb-6 -mx-2 px-2">
+                <div className="flex gap-6 min-w-[1080px]">
+                    {columns.map((column) => {
+                        const columnIssues = filteredIssues.filter(
+                            (issue) => issue.status === column.id
+                        );
 
-                    return (
-                        <div
-                            key={column.id}
-                            className="flex flex-col rounded-xl bg-slate-100/80 p-3 min-h-[500px]"
-                        >
-                            {/* Column Header */}
-                            <div className="mb-4 px-1 pt-1">
-                                <h2 className="text-xs font-bold uppercase tracking-wider text-gray-500">
-                                    {column.title} ({columnIssues.length})
-                                </h2>
+                        return (
+                            <div
+                                key={column.id}
+                                className="flex flex-col flex-1 min-w-[260px] rounded-xl bg-slate-100/80 p-3 min-h-[500px]"
+                            >
+                                {/* Column Header */}
+                                <div className="mb-4 px-1 pt-1">
+                                    <h2 className="text-xs font-bold uppercase tracking-wider text-gray-500">
+                                        {column.title} ({columnIssues.length})
+                                    </h2>
+                                </div>
+
+                                {/* Cards Area */}
+                                <div className="flex flex-1 flex-col gap-3">
+                                    {columnIssues.map((issue, index) => {
+                                        const issueId =
+                                            issue._id || issue.id || issue.key || `issue-${index}`;
+
+                                        let assigneeName = "John Doe";
+                                        if (typeof issue.assignee === "string") {
+                                            assigneeName = issue.assignee;
+                                        } else if (issue.assignee && typeof issue.assignee === "object") {
+                                            assigneeName = issue.assignee.name || "John Doe";
+                                        }
+
+                                        return (
+                                            <KanbanCard
+                                                key={issueId}
+                                                id={issueId}
+                                                title={issue.title}
+                                                description={issue.description}
+                                                status={issue.status ?? "TODO"}
+                                                type={issue.type || "TASK"}
+                                                priority={issue.priority || "MEDIUM"}
+                                                assignee={assigneeName}
+                                                onStatusChange={(newStatus) =>
+                                                    updateIssueStatus(issueId, newStatus)
+                                                }
+                                                dueDate={issue.dueDate}
+                                                onClick={() => setSelectedIssue(issue)}
+                                            />
+                                        );
+                                    })}
+
+                                    {columnIssues.length === 0 && (
+                                        <div className="flex min-h-28 items-center justify-center rounded-lg border border-dashed border-gray-300 bg-white/50">
+                                            <p className="text-xs text-gray-400">No issues</p>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
-
-                            {/* Cards Area */}
-                            <div className="flex flex-1 flex-col gap-3">
-                                {columnIssues.map((issue, index) => {
-                                    const issueId =
-                                        issue._id || issue.id || issue.key || `issue-${index}`;
-
-                                    let assigneeName = "John Doe";
-                                    if (typeof issue.assignee === "string") {
-                                        assigneeName = issue.assignee;
-                                    } else if (issue.assignee && typeof issue.assignee === "object") {
-                                        assigneeName = issue.assignee.name || "John Doe";
-                                    }
-
-                                    return (
-                                        <KanbanCard
-                                            key={issueId}
-                                            id={issueId}
-                                            title={issue.title}
-                                            description={issue.description}
-                                            status={issue.status ?? "TODO"}
-                                            type={issue.type || "TASK"}
-                                            priority={issue.priority || "MEDIUM"}
-                                            assignee={assigneeName}
-                                            onStatusChange={(newStatus) =>
-                                                updateIssueStatus(issueId, newStatus)
-                                            }
-                                            dueDate={issue.dueDate}
-                                            onClick={() => setSelectedIssue(issue)}
-                                        />
-                                    );
-                                })}
-
-                                {columnIssues.length === 0 && (
-                                    <div className="flex min-h-28 items-center justify-center rounded-lg border border-dashed border-gray-300 bg-white/50">
-                                        <p className="text-xs text-gray-400">No issues</p>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    );
-                })}
+                        );
+                    })}
+                </div>
             </div>
 
             {/* Create Issue Modal */}

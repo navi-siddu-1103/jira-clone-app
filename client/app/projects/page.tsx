@@ -96,19 +96,35 @@ const ProjectsPage = () => {
     ];
 
     const fetchProjects = async () => {
+        let customList: Project[] = [];
+        try {
+            const stored = localStorage.getItem("jira_custom_projects");
+            if (stored) customList = JSON.parse(stored);
+        } catch (e) {}
+
         try {
             setIsLoading(true);
             const response = await fetch(`${API_URL}/api/projects`);
             const data = await response.json();
 
             if (response.ok && data.data?.projects && data.data.projects.length > 0) {
-                setProjects(data.data.projects);
+                const map = new Map<string, Project>();
+                initialProjects.forEach((p) => map.set(p.key, p));
+                data.data.projects.forEach((p: Project) => map.set(p.key, p));
+                customList.forEach((p) => map.set(p.key, p));
+                setProjects(Array.from(map.values()));
             } else {
-                setProjects(initialProjects);
+                const map = new Map<string, Project>();
+                initialProjects.forEach((p) => map.set(p.key, p));
+                customList.forEach((p) => map.set(p.key, p));
+                setProjects(Array.from(map.values()));
             }
         } catch (err) {
             console.error("Fetch projects error:", err);
-            setProjects(initialProjects);
+            const map = new Map<string, Project>();
+            initialProjects.forEach((p) => map.set(p.key, p));
+            customList.forEach((p) => map.set(p.key, p));
+            setProjects(Array.from(map.values()));
         } finally {
             setIsLoading(false);
         }
@@ -116,7 +132,11 @@ const ProjectsPage = () => {
 
     useEffect(() => {
         fetchProjects();
+        const handleEvent = () => fetchProjects();
+        window.addEventListener("project_created", handleEvent);
+        return () => window.removeEventListener("project_created", handleEvent);
     }, []);
+
 
     const filteredProjects = projects.filter((project) =>
         `${project.name} ${project.key} ${project.description || ""}`
@@ -350,7 +370,13 @@ const ProjectsPage = () => {
 
                                         <Button
                                             variant="outline"
-                                            onClick={() => setSelectedProject(project)}
+                                            onClick={() => {
+                                                try {
+                                                    localStorage.setItem("jira_current_project", JSON.stringify(project));
+                                                    window.dispatchEvent(new Event("project_changed"));
+                                                } catch (e) {}
+                                                router.push("/kanban");
+                                            }}
                                             className="mt-5 w-full"
                                         >
                                             Open Project
@@ -435,6 +461,10 @@ const ProjectsPage = () => {
                             <Button
                                 className="bg-[#0052CC] hover:bg-[#0747A6]"
                                 onClick={() => {
+                                    try {
+                                        localStorage.setItem("jira_current_project", JSON.stringify(selectedProject));
+                                        window.dispatchEvent(new Event("project_changed"));
+                                    } catch (e) {}
                                     setSelectedProject(null);
                                     router.push("/kanban");
                                 }}

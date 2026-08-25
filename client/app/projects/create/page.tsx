@@ -81,6 +81,25 @@ const CreateProjectPage = () => {
                 throw new Error(data.message || "Failed to create project");
             }
 
+            const createdProj = data.data?.project || {
+                id: `proj-${Date.now()}`,
+                name: formData.name.trim(),
+                key: formData.key.trim().toUpperCase(),
+                description: formData.description.trim(),
+                owner: user?.name || "Naveen",
+                members: 1,
+            };
+
+            try {
+                const storedCustom = localStorage.getItem("jira_custom_projects");
+                const list = storedCustom ? JSON.parse(storedCustom) : [];
+                list.push(createdProj);
+                localStorage.setItem("jira_custom_projects", JSON.stringify(list));
+                localStorage.setItem("jira_current_project", JSON.stringify(createdProj));
+                window.dispatchEvent(new Event("project_created"));
+                window.dispatchEvent(new Event("project_changed"));
+            } catch (e) {}
+
             router.push("/projects");
         } catch (error) {
             console.error("Create project error:", error);
