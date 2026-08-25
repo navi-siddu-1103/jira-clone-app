@@ -73,6 +73,31 @@ public class MongoConfig extends AbstractMongoClientConfiguration {
 
         String uri = rawUri.trim();
 
+        // Ensure target database 'jira_clone' is present in URI path
+        if (uri.startsWith("mongodb+srv://") || uri.startsWith("mongodb://")) {
+            try {
+                ConnectionString cs = new ConnectionString(uri);
+                if (cs.getDatabase() == null || cs.getDatabase().trim().isEmpty()) {
+                    int qIdx = uri.indexOf('?');
+                    if (qIdx != -1) {
+                        String basePath = uri.substring(0, qIdx);
+                        String params = uri.substring(qIdx);
+                        if (basePath.endsWith("/")) {
+                            uri = basePath + "jira_clone" + params;
+                        } else {
+                            uri = basePath + "/jira_clone" + params;
+                        }
+                    } else {
+                        if (uri.endsWith("/")) {
+                            uri = uri + "jira_clone";
+                        } else {
+                            uri = uri + "/jira_clone";
+                        }
+                    }
+                }
+            } catch (Exception ignore) {}
+        }
+
         try {
             new ConnectionString(uri);
             return uri;
