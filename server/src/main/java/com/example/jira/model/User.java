@@ -1,6 +1,5 @@
 package com.example.jira.model;
 
-import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
@@ -10,7 +9,6 @@ import java.util.Date;
 
 @Data
 @NoArgsConstructor
-@AllArgsConstructor
 @Document(collection = "users")
 public class User {
 
@@ -21,13 +19,16 @@ public class User {
     private String password;
     private String role = "USER";
     private String group;
-    private Date createdAt = new Date();
-    private Date updatedAt = new Date();
+    private Date createdAt;
+    private Date updatedAt;
 
     public User(String id, String name, String email) {
         this.id = id;
         this.name = name;
         this.email = email;
+        this.role = "USER";
+        this.createdAt = new Date();
+        this.updatedAt = new Date();
     }
 
     public User(String id, String name, String email, String group) {
@@ -35,5 +36,8 @@ public class User {
         this.name = name;
         this.email = email;
         this.group = group;
+        this.role = "USER";
+        this.createdAt = new Date();
+        this.updatedAt = new Date();
     }
 }
