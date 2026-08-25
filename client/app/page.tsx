@@ -55,6 +55,8 @@ const HomePage = () => {
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null);
     const [activeFilter, setActiveFilter] = useState<"ALL" | "MY" | "RECENT">("ALL");
+    /** The column ID currently being dragged over, for highlight feedback */
+    const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
 
     const [currentProjectName, setCurrentProjectName] = useState("Platform Services");
 
@@ -135,6 +137,21 @@ const HomePage = () => {
     const handleIssueCreated = (newIssue: Issue) => {
         setIssues((prev) => [newIssue, ...prev]);
         setShowCreateModal(false);
+    };
+
+    /** Called when a card is dropped onto a column */
+    const handleDrop = (e: React.DragEvent<HTMLDivElement>, targetStatus: string) => {
+        e.preventDefault();
+        const draggedId = e.dataTransfer.getData("text/plain");
+        setDragOverColumn(null);
+        if (!draggedId) return;
+
+        const draggedIssue = issues.find(
+            (iss) => (iss._id || iss.id || iss.key) === draggedId
+        );
+        if (!draggedIssue || draggedIssue.status === targetStatus) return;
+
+        updateIssueStatus(draggedId, targetStatus);
     };
 
     const columns = [
@@ -240,15 +257,28 @@ const HomePage = () => {
                         const columnIssues = filteredIssues.filter(
                             (issue) => issue.status === column.id
                         );
+                        const isOver = dragOverColumn === column.id;
 
                         return (
                             <div
                                 key={column.id}
-                                className="flex flex-col flex-1 min-w-[260px] rounded-xl bg-slate-100/80 p-3 min-h-[500px]"
+                                onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }}
+                                onDragEnter={(e) => { e.preventDefault(); setDragOverColumn(column.id); }}
+                                onDragLeave={(e) => {
+                                    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                                        setDragOverColumn(null);
+                                    }
+                                }}
+                                onDrop={(e) => handleDrop(e, column.id)}
+                                className={`flex flex-col flex-1 min-w-[260px] rounded-xl p-3 min-h-[500px] transition-colors duration-150
+                                    ${isOver
+                                        ? "bg-blue-50 ring-2 ring-blue-400 ring-inset"
+                                        : "bg-slate-100/80"
+                                    }`}
                             >
                                 {/* Column Header */}
                                 <div className="mb-4 px-1 pt-1">
-                                    <h2 className="text-xs font-bold uppercase tracking-wider text-gray-500">
+                                    <h2 className={`text-xs font-bold uppercase tracking-wider ${isOver ? "text-blue-600" : "text-gray-500"}`}>
                                         {column.title} ({columnIssues.length})
                                     </h2>
                                 </div>
@@ -285,9 +315,17 @@ const HomePage = () => {
                                         );
                                     })}
 
+                                    {/* Drop zone when column is empty */}
                                     {columnIssues.length === 0 && (
-                                        <div className="flex min-h-28 items-center justify-center rounded-lg border border-dashed border-gray-300 bg-white/50">
-                                            <p className="text-xs text-gray-400">No issues</p>
+                                        <div className={`flex flex-1 min-h-28 items-center justify-center rounded-lg border-2 border-dashed transition-colors
+                                            ${isOver
+                                                ? "border-blue-400 bg-blue-50/60"
+                                                : "border-gray-300 bg-white/50"
+                                            }`}
+                                        >
+                                            <p className={`text-xs font-medium ${isOver ? "text-blue-500" : "text-gray-400"}`}>
+                                                {isOver ? "Drop here" : "No issues"}
+                                            </p>
                                         </div>
                                     )}
                                 </div>

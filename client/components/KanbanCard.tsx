@@ -1,12 +1,7 @@
 "use client";
 
-import React from "react";
-import {
-    CheckSquare,
-    Bug,
-    Bookmark,
-    Layers,
-} from "lucide-react";
+import React, { useState } from "react";
+import { CheckSquare, Bug, Bookmark } from "lucide-react";
 
 interface KanbanCardProps {
     id: string;
@@ -33,6 +28,18 @@ const KanbanCard = ({
     onStatusChange,
     onClick,
 }: KanbanCardProps) => {
+    const [isDragging, setIsDragging] = useState(false);
+
+    /* ── Drag handlers ── */
+    const handleDragStart = (e: React.DragEvent<HTMLDivElement>) => {
+        e.dataTransfer.setData("text/plain", id);
+        e.dataTransfer.effectAllowed = "move";
+        setIsDragging(true);
+    };
+
+    const handleDragEnd = () => {
+        setIsDragging(false);
+    };
     const getPriorityBadge = (p: string) => {
         const uppercaseP = (p || "MEDIUM").toUpperCase();
         switch (uppercaseP) {
@@ -98,9 +105,19 @@ const KanbanCard = ({
 
     return (
         <div
+            draggable
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
             onClick={onClick}
-            className="group relative cursor-pointer rounded-lg border border-gray-200 bg-white p-4 shadow-xs transition-all hover:border-blue-400 hover:shadow-md overflow-hidden"
+            className={`group relative rounded-lg border bg-white p-4 transition-all overflow-hidden
+                ${isDragging
+                    ? "opacity-40 scale-95 border-blue-400 shadow-lg cursor-grabbing"
+                    : "opacity-100 border-gray-200 shadow-sm hover:border-blue-400 hover:shadow-md cursor-grab"
+                }`}
         >
+            {/* Top drag-indicator stripe — shows on hover */}
+            <div className="absolute inset-x-0 top-0 h-[3px] rounded-t-lg bg-gradient-to-r from-blue-400 to-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+
             {/* Title */}
             <h3 className="mb-2 text-sm font-semibold leading-snug text-gray-900 line-clamp-2">
                 {title}
@@ -148,6 +165,7 @@ const KanbanCard = ({
                             onStatusChange?.(e.target.value);
                         }}
                         onClick={(e) => e.stopPropagation()}
+                        onMouseDown={(e) => e.stopPropagation()}
                         className="h-5 rounded border border-gray-200 bg-gray-50 px-1 text-[10px] font-medium text-gray-600 opacity-0 transition group-hover:opacity-100 hover:bg-white"
                         title="Change status"
                     >
