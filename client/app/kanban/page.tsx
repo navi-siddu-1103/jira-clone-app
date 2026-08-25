@@ -57,20 +57,30 @@ const KanbanPage = () => {
     const [activeFilter, setActiveFilter] = useState<"ALL" | "MY" | "RECENT">("ALL");
 
     const fetchIssues = async () => {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000);
+
         try {
             setIsLoading(true);
             setError("");
 
-            const response = await fetch(`${API_URL}/api/issues`);
+            const response = await fetch(`${API_URL}/api/issues`, {
+                signal: controller.signal,
+            });
+            clearTimeout(timeoutId);
+
             const data = await response.json();
 
-            if (response.ok && data.data?.issues && data.data.issues.length > 0) {
-                setIssues(data.data.issues);
+            if (response.ok) {
+                const fetched: Issue[] =
+                    data.data?.issues || data.issues || [];
+                setIssues(fetched.length > 0 ? fetched : defaultSampleIssues);
             } else {
                 setIssues(defaultSampleIssues);
             }
         } catch (err) {
-            console.error("Fetch issues error:", err);
+            clearTimeout(timeoutId);
+            console.warn("Fetch issues failed, showing sample data:", err);
             setIssues(defaultSampleIssues);
         } finally {
             setIsLoading(false);
@@ -203,19 +213,7 @@ const KanbanPage = () => {
                 </button>
             </div>
 
-            {/* Error Banner if any */}
-            {error && (
-                <div className="mb-6 flex items-center justify-between rounded-md bg-red-50 p-4 border border-red-200">
-                    <p className="text-sm font-medium text-red-600">Notice: {error}</p>
-                    <button
-                        type="button"
-                        onClick={fetchIssues}
-                        className="rounded bg-red-600 px-3 py-1 text-xs font-semibold text-white hover:bg-red-700"
-                    >
-                        Try Again
-                    </button>
-                </div>
-            )}
+
 
             {/* Kanban Columns */}
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
