@@ -58,8 +58,11 @@ const KanbanPage = () => {
     const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null);
     const [activeFilter, setActiveFilter] = useState<"ALL" | "MY" | "RECENT">("ALL");
     const [searchQuery, setSearchQuery] = useState("");
-    /** The column ID currently being dragged over, for highlight feedback */
     const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
+    const [showShareModal, setShowShareModal] = useState(false);
+    const [shareEmail, setShareEmail] = useState("");
+    const [shareRole, setShareRole] = useState("viewer");
+    const [shareSuccess, setShareSuccess] = useState(false);
 
     const [currentProjectName, setCurrentProjectName] = useState("Platform Services");
 
@@ -222,8 +225,12 @@ const KanbanPage = () => {
                 </div>
 
                 <div className="flex items-center gap-3">
-                    <button className="rounded p-1 text-gray-400 hover:bg-gray-200 hover:text-gray-700">
-                        <Share2 className="h-4 w-4" />
+                    <button
+                        onClick={() => { setShowShareModal(true); setShareSuccess(false); setShareEmail(""); }}
+                        className="flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 shadow-sm hover:bg-gray-50 hover:border-blue-400 transition"
+                    >
+                        <Share2 className="h-3.5 w-3.5" />
+                        Share
                     </button>
                     <button className="rounded p-1 text-gray-400 hover:bg-gray-200 hover:text-gray-700">
                         <MoreHorizontal className="h-4 w-4" />
@@ -389,6 +396,112 @@ const KanbanPage = () => {
                     issue={selectedIssue}
                     onClose={() => setSelectedIssue(null)}
                 />
+            )}
+
+            {/* Share Modal */}
+            {showShareModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+                    <div className="w-full max-w-md rounded-xl bg-white shadow-2xl">
+                        {/* Header */}
+                        <div className="flex items-center justify-between border-b px-6 py-4">
+                            <div>
+                                <h2 className="text-base font-semibold text-gray-900">Share Kanban Board</h2>
+                                <p className="text-xs text-gray-500 mt-0.5">Invite team members to view or edit this board</p>
+                            </div>
+                            <button
+                                onClick={() => setShowShareModal(false)}
+                                className="rounded-md p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+                            >
+                                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        <div className="px-6 py-5 space-y-4">
+                            {shareSuccess ? (
+                                <div className="flex flex-col items-center gap-3 py-4">
+                                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
+                                        <svg className="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                        </svg>
+                                    </div>
+                                    <p className="text-sm font-semibold text-gray-800">Invitation sent!</p>
+                                    <p className="text-xs text-gray-500 text-center">An invitation has been sent to <strong>{shareEmail}</strong></p>
+                                    <button
+                                        onClick={() => { setShareSuccess(false); setShareEmail(""); }}
+                                        className="mt-2 text-xs font-medium text-blue-600 hover:underline"
+                                    >
+                                        Invite another person
+                                    </button>
+                                </div>
+                            ) : (
+                                <>
+                                    {/* Current board link */}
+                                    <div className="space-y-1">
+                                        <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Board Link</label>
+                                        <div className="flex gap-2">
+                                            <input
+                                                readOnly
+                                                value={typeof window !== "undefined" ? window.location.href : ""}
+                                                className="flex-1 rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600 outline-none"
+                                            />
+                                            <button
+                                                onClick={() => { if (typeof window !== "undefined") navigator.clipboard.writeText(window.location.href); }}
+                                                className="rounded-md border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+                                            >
+                                                Copy
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* Email input */}
+                                    <div className="space-y-1">
+                                        <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Invite by Email</label>
+                                        <input
+                                            type="email"
+                                            placeholder="e.g., colleague@example.com"
+                                            value={shareEmail}
+                                            onChange={(e) => setShareEmail(e.target.value)}
+                                            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                                        />
+                                    </div>
+
+                                    {/* Permission */}
+                                    <div className="space-y-1">
+                                        <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Permission</label>
+                                        <select
+                                            value={shareRole}
+                                            onChange={(e) => setShareRole(e.target.value)}
+                                            className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                                        >
+                                            <option value="viewer">Can View</option>
+                                            <option value="editor">Can Edit</option>
+                                            <option value="admin">Admin</option>
+                                        </select>
+                                    </div>
+
+                                    {/* Actions */}
+                                    <div className="flex justify-end gap-3 pt-2">
+                                        <button
+                                            onClick={() => setShowShareModal(false)}
+                                            className="rounded-md border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-50"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            disabled={!shareEmail.includes("@")}
+                                            onClick={() => { if (shareEmail.includes("@")) setShareSuccess(true); }}
+                                            className="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                                        >
+                                            Send Invite
+                                        </button>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                </div>
             )}
 
         </div>
