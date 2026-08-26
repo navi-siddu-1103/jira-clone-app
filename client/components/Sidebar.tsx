@@ -158,15 +158,6 @@ const Sidebar = () => {
         setShowprojectmenu(false);
     };
 
-    const currentUser = user || {
-        id: "user-1",
-        name: "Naveen",
-        email: "naveen@gmail.com",
-        role: "ADMIN",
-        group: "Engineering",
-        avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100",
-        createdAt: new Date().toISOString(),
-    };
 
     return (
         <div className="flex min-h-screen w-[280px] flex-col border-r border-gray-200 bg-white shrink-0">
@@ -324,8 +315,8 @@ const Sidebar = () => {
                 </div>
             )}
 
-            {/* User Section */}
-            {currentUser && (
+            {/* User Section — only shown when a real user is authenticated */}
+            {user && (
                 <div className="border-t border-gray-200 p-4">
 
                     {/* User Information */}
@@ -333,22 +324,22 @@ const Sidebar = () => {
 
                         <Avatar>
                             <AvatarImage
-                                src={currentUser.avatar}
-                                alt={currentUser.name}
+                                src={(user as any).avatar}
+                                alt={user.name}
                             />
 
-                            <AvatarFallback>
-                                {currentUser.name.charAt(0)}
+                            <AvatarFallback className="bg-blue-100 text-blue-700 font-semibold">
+                                {user.name.charAt(0).toUpperCase()}
                             </AvatarFallback>
                         </Avatar>
 
                         <div className="min-w-0">
                             <p className="truncate text-sm font-medium text-gray-900">
-                                {currentUser.name}
+                                {user.name}
                             </p>
 
                             <p className="truncate text-xs text-gray-500">
-                                {currentUser.email}
+                                {user.email}
                             </p>
                         </div>
                     </div>
@@ -362,18 +353,16 @@ const Sidebar = () => {
                         }
                     >
                         <Plus className="mr-2 h-4 w-4" />
-
                         Create Issue
                     </Button>
 
-                    {/* Logout */}
+                    {/* Logout — clicking this immediately logs out */}
                     <Button
                         variant="ghost"
-                        className="w-full justify-start text-sm text-gray-900 hover:bg-gray-100"
+                        className="w-full justify-start text-sm text-gray-900 hover:bg-red-50 hover:text-red-600"
                         onClick={logout}
                     >
                         <LogOut className="mr-2 h-4 w-4" />
-
                         Log Out
                     </Button>
                 </div>

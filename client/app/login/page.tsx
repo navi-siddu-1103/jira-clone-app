@@ -279,7 +279,7 @@ const LoginPage = () => {
                                     <Input
                                         type="text"
                                         name="name"
-                                        placeholder="e.g., Naveen"
+                                        placeholder="e.g., John Doe"
                                         value={formData.name}
                                         onChange={handleChange}
                                         required
@@ -296,7 +296,7 @@ const LoginPage = () => {
                                 <Input
                                     type="email"
                                     name="email"
-                                    placeholder="e.g., naveen@gmail.com"
+                                    placeholder="e.g., user@example.com"
                                     value={formData.email}
                                     onChange={handleChange}
                                     required
