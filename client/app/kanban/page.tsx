@@ -1,12 +1,17 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import KanbanCard from "@/components/KanbanCard";
-import { Share2, MoreHorizontal } from "lucide-react";
+import { Share2, MoreHorizontal, CheckCircle2, AlertTriangle, X as XIcon } from "lucide-react";
 import CreateIssueModal from "@/components/CreateIssueModel";
 import IssueDetailsModel from "@/components/IssueDetailsModel";
 import type { Issue } from "@/types";
 import { useAuth } from "@/context/AuthContext";
+import {
+    allSubtasksDone,
+    getBlockingDeps,
+    getNewlyUnblocked,
+} from "@/lib/subtaskManager";
 
 
 const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
@@ -65,6 +70,15 @@ const KanbanPage = () => {
     const [shareSuccess, setShareSuccess] = useState(false);
     const [showBoardMenu, setShowBoardMenu] = useState(false);
     const boardMenuRef = useRef<HTMLDivElement>(null);
+
+    // Toast notifications for dependency unblocking
+    type Toast = { id: number; type: "success" | "warn"; msg: string };
+    const [toasts, setToasts] = useState<Toast[]>([]);
+    const addToast = useCallback((type: Toast["type"], msg: string) => {
+        const id = Date.now();
+        setToasts((t) => [...t, { id, type, msg }]);
+        setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 5000);
+    }, []);
 
     // Close board menu on outside click
     useEffect(() => {
@@ -140,18 +154,44 @@ const KanbanPage = () => {
     }, []);
 
     const updateIssueStatus = async (issueId: string, newStatus: string) => {
-        try {
-            // Update local state immediately for fast UI response
-            setIssues((prev) =>
-                prev.map((issue) => {
-                    const currentId = issue._id || issue.id || issue.key;
-                    if (currentId === issueId) {
-                        return { ...issue, status: newStatus };
-                    }
-                    return issue;
-                })
-            );
+        const statusMap: Record<string, string> = {};
+        issues.forEach((iss) => { statusMap[iss._id || iss.id || iss.key || ""] = iss.status || "TODO"; });
 
+        // ── 1. Subtask guard: parent cannot be DONE unless all subtasks are done ──
+        if (newStatus === "DONE" && !allSubtasksDone(issueId)) {
+            addToast("warn", "⚠️ Cannot mark as Done — complete all subtasks first.");
+            return;
+        }
+
+        // ── 2. Dependency guard: cannot move out of TODO if blocked ──
+        if (newStatus !== "TODO") {
+            const blocking = getBlockingDeps(issueId, statusMap);
+            if (blocking.length > 0) {
+                const blockingIssue = issues.find((i) => (i._id || i.id || i.key) === blocking[0]);
+                addToast("warn", `⛔ Blocked by: "${blockingIssue?.title || blocking[0]}" — complete it first.`);
+                return;
+            }
+        }
+
+        // ── 3. Apply the status change ──
+        setIssues((prev) =>
+            prev.map((issue) => {
+                const currentId = issue._id || issue.id || issue.key;
+                if (currentId === issueId) return { ...issue, status: newStatus };
+                return issue;
+            })
+        );
+
+        // ── 4. Notify about newly unblocked issues ──
+        if (newStatus === "DONE") {
+            const nowUnblocked = getNewlyUnblocked(issueId, statusMap);
+            nowUnblocked.forEach((unblockedId) => {
+                const iss = issues.find((i) => (i._id || i.id || i.key) === unblockedId);
+                if (iss) addToast("success", `✅ "${iss.title}" is now unblocked and ready to start!`);
+            });
+        }
+
+        try {
             await fetch(`${API_URL}/api/issues/${issueId}`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
@@ -174,15 +214,12 @@ const KanbanPage = () => {
         setDragOverColumn(null);
         if (!draggedId) return;
 
-        // Find the dragged issue's current status
-        const draggedIssue = issues.find(
-            (iss) => (iss._id || iss.id || iss.key) === draggedId
-        );
-        // Skip if dropped on the same column
+        const draggedIssue = issues.find((iss) => (iss._id || iss.id || iss.key) === draggedId);
         if (!draggedIssue || draggedIssue.status === targetStatus) return;
 
         updateIssueStatus(draggedId, targetStatus);
     };
+
 
     const columns = [
         { id: "TODO", title: "TO DO" },
@@ -474,9 +511,12 @@ const KanbanPage = () => {
             {selectedIssue && (
                 <IssueDetailsModel
                     issue={selectedIssue}
+                    allIssues={issues}
                     onClose={() => setSelectedIssue(null)}
+                    onStatusChange={(id, status) => updateIssueStatus(id, status)}
                 />
             )}
+
 
             {/* Share Modal */}
             {showShareModal && (
@@ -583,6 +623,30 @@ const KanbanPage = () => {
                     </div>
                 </div>
             )}
+            {/* Toast Notifications */}
+            <div className="fixed bottom-6 right-6 z-[200] flex flex-col gap-2 w-80">
+                {toasts.map((toast) => (
+                    <div
+                        key={toast.id}
+                        className={`flex items-start gap-3 rounded-xl px-4 py-3 shadow-lg border text-sm font-medium animate-fade-in ${
+                            toast.type === "success"
+                                ? "bg-green-50 border-green-200 text-green-800"
+                                : "bg-amber-50 border-amber-200 text-amber-800"
+                        }`}
+                    >
+                        {toast.type === "success"
+                            ? <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 shrink-0" />
+                            : <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />}
+                        <span className="flex-1">{toast.msg}</span>
+                        <button
+                            onClick={() => setToasts((t) => t.filter((x) => x.id !== toast.id))}
+                            className="text-gray-400 hover:text-gray-600 shrink-0"
+                        >
+                            <XIcon className="h-3.5 w-3.5" />
+                        </button>
+                    </div>
+                ))}
+            </div>
 
         </div>
     );

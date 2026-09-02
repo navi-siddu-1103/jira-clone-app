@@ -6,6 +6,14 @@ export interface IssueAssignee {
     email?: string;
 }
 
+export interface Subtask {
+    id: string;
+    title: string;
+    status: "TODO" | "IN_PROGRESS" | "IN_REVIEW" | "DONE";
+    assignee?: string;
+    createdAt: string;
+}
+
 export interface Issue {
     _id?: string;
     id?: string;
@@ -18,6 +26,11 @@ export interface Issue {
     assignee?: string | IssueAssignee | null;
     dueDate?: string;
     projectId?: string | object;
+    sprint?: string;
     createdAt?: string;
     updatedAt?: string;
+    // Subtask & dependency fields (managed client-side)
+    subtasks?: Subtask[];
+    parentId?: string;
+    dependencies?: string[];
 }
