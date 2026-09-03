@@ -14,6 +14,34 @@ export interface Subtask {
     createdAt: string;
 }
 
+// ── Time Tracking ─────────────────────────────────────────────────────────────
+
+export interface WorkLog {
+    id: string;
+    issueId: string;
+    userId: string;
+    userName: string;
+    date: string;           // YYYY-MM-DD  (not future)
+    duration: number;       // minutes (> 0)
+    description: string;
+    sprint?: string;
+    createdAt: string;
+    updatedAt?: string;
+}
+
+export interface AuditEntry {
+    id: string;
+    action: "CREATE" | "EDIT" | "DELETE";
+    workLogId: string;
+    issueId: string;
+    userId: string;
+    userName: string;
+    timestamp: string;
+    details: string;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 export interface Issue {
     _id?: string;
     id?: string;

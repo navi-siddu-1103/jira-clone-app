@@ -12,9 +12,8 @@ import {
     Square,
     Link2,
     AlertTriangle,
-    ChevronDown,
-    Loader2,
 } from "lucide-react";
+
 import type { Issue, Subtask } from "@/types";
 import {
     getSubtasks,
@@ -27,14 +26,17 @@ import {
     removeDependency,
 } from "@/lib/subtaskManager";
 
+import TimeTrackingPanel from "@/components/TimeTrackingPanel";
+
 interface IssueDetailsModalProps {
     issue: Issue;
-    allIssues?: Issue[];                       // needed for dependency picker
+    allIssues?: Issue[];
     onClose: () => void;
     onStatusChange?: (id: string, status: string) => void;
 }
 
-type Tab = "details" | "subtasks" | "dependencies";
+type Tab = "details" | "subtasks" | "dependencies" | "timelog";
+
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 const priorityStyles: Record<string, string> = {
@@ -227,7 +229,7 @@ const IssueDetailsModal = ({ issue, allIssues = [], onClose, onStatusChange }: I
 
                 {/* Tabs */}
                 <div className="flex border-b border-gray-200 px-6 shrink-0">
-                    {(["details", "subtasks", "dependencies"] as Tab[]).map((tab) => (
+                    {(["details", "subtasks", "dependencies", "timelog"] as Tab[]).map((tab) => (
                         <button
                             key={tab}
                             onClick={() => setActiveTab(tab)}
@@ -237,7 +239,7 @@ const IssueDetailsModal = ({ issue, allIssues = [], onClose, onStatusChange }: I
                                     : "border-transparent text-gray-500 hover:text-gray-700"
                             }`}
                         >
-                            {tab}
+                            {tab === "timelog" ? "Time Log" : tab}
                             {tab === "subtasks" && subtasks.length > 0 && (
                                 <span className="ml-1.5 rounded-full bg-blue-100 px-1.5 py-0.5 text-[10px] font-bold text-blue-600">
                                     {subtasks.length}
@@ -250,6 +252,7 @@ const IssueDetailsModal = ({ issue, allIssues = [], onClose, onStatusChange }: I
                             )}
                         </button>
                     ))}
+
                 </div>
 
                 {/* Body */}
@@ -521,7 +524,17 @@ const IssueDetailsModal = ({ issue, allIssues = [], onClose, onStatusChange }: I
                             </div>
                         </div>
                     )}
+
+                    {/* ── TIME LOG TAB ── */}
+                    {activeTab === "timelog" && (
+                        <TimeTrackingPanel
+                            issueId={id}
+                            issueAssignee={assigneeName}
+                            sprint={issue.sprint}
+                        />
+                    )}
                 </div>
+
 
                 {/* Footer */}
                 <div className="flex justify-end border-t border-gray-200 px-6 py-4 shrink-0">
