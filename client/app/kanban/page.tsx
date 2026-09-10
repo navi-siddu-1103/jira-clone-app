@@ -12,6 +12,10 @@ import {
     getBlockingDeps,
     getNewlyUnblocked,
 } from "@/lib/subtaskManager";
+import { RealtimeProvider, useRealtime } from "@/context/RealtimeContext";
+import PresenceBar from "@/components/PresenceBar";
+
+
 
 
 const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
@@ -54,8 +58,9 @@ const defaultSampleIssues: Issue[] = [
     },
 ];
 
-const KanbanPage = () => {
+const KanbanBoard = () => {
     const { user } = useAuth();
+    const { publish, subscribe, activeUsers, connectionStatus } = useRealtime();
     const [issues, setIssues] = useState<Issue[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState("");
@@ -153,6 +158,47 @@ const KanbanPage = () => {
         fetchIssues();
     }, []);
 
+    // ── Real-time subscription ────────────────────────────────────────────────
+    useEffect(() => {
+        const unsub = subscribe((event) => {
+            if (event.type === "ISSUE_STATUS_CHANGED") {
+                const { issueId, newStatus, updatedAt } = event.payload as { issueId: string; newStatus: string; updatedAt: string };
+                setIssues((prev) => prev.map((iss) => {
+                    const id = iss._id || iss.id || iss.key;
+                    if (id !== issueId) return iss;
+                    // Conflict resolution: last-write-wins via timestamp
+                    const incoming = new Date(updatedAt).getTime();
+                    const local = iss.updatedAt ? new Date(iss.updatedAt).getTime() : 0;
+                    if (incoming >= local) return { ...iss, status: newStatus, updatedAt };
+                    return iss;
+                }));
+                addToast("success", `🔄 ${event.senderName} moved an issue to ${newStatus.replace("_", " ")}`);
+            }
+            if (event.type === "ISSUE_CREATED") {
+                const newIssue = event.payload as Issue;
+                setIssues((prev) => {
+                    const exists = prev.some((iss) => (iss._id || iss.id) === (newIssue._id || newIssue.id));
+                    if (exists) return prev;    // dedup: already have it
+                    return [newIssue, ...prev];
+                });
+                addToast("success", `✨ ${event.senderName} created: "${newIssue.title}"`);
+            }
+            if (event.type === "ISSUE_UPDATED") {
+                const updated = event.payload as Issue;
+                setIssues((prev) => prev.map((iss) => {
+                    const id = iss._id || iss.id || iss.key;
+                    if (id !== (updated._id || updated.id || updated.key)) return iss;
+                    return { ...iss, ...updated };
+                }));
+            }
+            if (event.type === "COMMENT_ADDED") {
+                const { issueTitle, comment } = event.payload as { issueTitle: string; comment: string };
+                addToast("success", `💬 ${event.senderName} commented on "${issueTitle}": "${comment.slice(0, 40)}…"`);
+            }
+        });
+        return unsub;
+    }, [subscribe, addToast]);
+
     const updateIssueStatus = async (issueId: string, newStatus: string) => {
         const statusMap: Record<string, string> = {};
         issues.forEach((iss) => { statusMap[iss._id || iss.id || iss.key || ""] = iss.status || "TODO"; });
@@ -174,13 +220,17 @@ const KanbanPage = () => {
         }
 
         // ── 3. Apply the status change ──
+        const updatedAt = new Date().toISOString();
         setIssues((prev) =>
             prev.map((issue) => {
                 const currentId = issue._id || issue.id || issue.key;
-                if (currentId === issueId) return { ...issue, status: newStatus };
+                if (currentId === issueId) return { ...issue, status: newStatus, updatedAt };
                 return issue;
             })
         );
+
+        // ── 4. Broadcast to other users via real-time ──
+        publish("ISSUE_STATUS_CHANGED", { issueId, newStatus, updatedAt });
 
         // ── 4. Notify about newly unblocked issues ──
         if (newStatus === "DONE") {
@@ -205,7 +255,9 @@ const KanbanPage = () => {
     const handleIssueCreated = (newIssue: Issue) => {
         setIssues((prev) => [newIssue, ...prev]);
         setShowCreateModal(false);
+        publish("ISSUE_CREATED", newIssue);
     };
+
 
     /** Called when a card is dropped onto a column */
     const handleDrop = (e: React.DragEvent<HTMLDivElement>, targetStatus: string) => {
@@ -275,7 +327,15 @@ const KanbanPage = () => {
                 </div>
 
                 <div className="flex items-center gap-3">
+                    {/* Real-time presence bar */}
+                    <PresenceBar
+                        activeUsers={activeUsers}
+                        connectionStatus={connectionStatus}
+                        currentUserId={user?.id}
+                    />
+
                     <button
+
                         onClick={() => { setShowShareModal(true); setShareSuccess(false); setShareEmail(""); }}
                         className="flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 shadow-sm hover:bg-gray-50 hover:border-blue-400 transition"
                     >
@@ -649,6 +709,27 @@ const KanbanPage = () => {
             </div>
 
         </div>
+    );
+};
+
+// Wrap with RealtimeProvider so the board has real-time collaboration
+const KanbanPage = () => {
+    const [projectId, setProjectId] = React.useState("6a897d9ddfcfb80e0e7cf8ab");
+
+    React.useEffect(() => {
+        try {
+            const stored = localStorage.getItem("jira_current_project");
+            if (stored) {
+                const parsed = JSON.parse(stored);
+                if (parsed?._id || parsed?.id) setProjectId(parsed._id || parsed.id);
+            }
+        } catch {}
+    }, []);
+
+    return (
+        <RealtimeProvider projectId={projectId}>
+            <KanbanBoard />
+        </RealtimeProvider>
     );
 };
 
