@@ -7,6 +7,7 @@ import com.example.jira.model.Project;
 import com.example.jira.model.User;
 import com.example.jira.repository.ProjectRepository;
 import com.example.jira.repository.UserRepository;
+import com.example.jira.websocket.RealTimeWebSocketHandler;
 import org.bson.Document;
 import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,6 +30,9 @@ public class IssueController {
 
     @Autowired
     private MongoTemplate mongoTemplate;
+
+    @Autowired
+    private RealTimeWebSocketHandler wsHandler;
 
     @GetMapping
     public ResponseEntity<ApiResponse> getAllIssues() {
@@ -104,11 +108,26 @@ public class IssueController {
             mongoTemplate.save(doc, "issues");
 
             Map<String, Object> map = convertDocumentToMap(doc);
+
+            // ── Real-time broadcast ──────────────────────────────────────────
+            String projectIdStr = request.getProjectId();
+            Map<String, Object> rtEvent = new HashMap<>();
+            rtEvent.put("id", "srv-" + System.currentTimeMillis());
+            rtEvent.put("type", "ISSUE_CREATED");
+            rtEvent.put("projectId", projectIdStr);
+            rtEvent.put("senderId", "server");
+            rtEvent.put("senderName", "Server");
+            rtEvent.put("payload", map);
+            rtEvent.put("timestamp", System.currentTimeMillis());
+            wsHandler.broadcastToProject(projectIdStr, rtEvent);
+            // ─────────────────────────────────────────────────────────────────
+
             Map<String, Object> data = new HashMap<>();
             data.put("issue", map);
 
             return ResponseEntity.status(HttpStatus.CREATED)
                     .body(ApiResponse.success("Issue created successfully", data));
+
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -174,10 +193,44 @@ public class IssueController {
             mongoTemplate.save(doc, "issues");
 
             Map<String, Object> map = convertDocumentToMap(doc);
+
+            // ── Real-time broadcast ──────────────────────────────────────────
+            Object pIdObj = doc.get("projectId");
+            String broadcastProjectId = null;
+            if (pIdObj instanceof Document pd) {
+                Object inner = pd.get("_id");
+                broadcastProjectId = inner != null ? inner.toString() : null;
+            } else if (pIdObj != null) {
+                broadcastProjectId = pIdObj.toString();
+            }
+
+            if (broadcastProjectId != null) {
+                String eventType = request.getStatus() != null ? "ISSUE_STATUS_CHANGED" : "ISSUE_UPDATED";
+                Map<String, Object> rtPayload = new HashMap<>();
+                if ("ISSUE_STATUS_CHANGED".equals(eventType)) {
+                    rtPayload.put("issueId", id);
+                    rtPayload.put("newStatus", request.getStatus());
+                    rtPayload.put("updatedAt", doc.get("updatedAt") != null ? doc.get("updatedAt").toString() : new Date().toString());
+                } else {
+                    rtPayload.putAll(map);
+                }
+                Map<String, Object> rtEvent = new HashMap<>();
+                rtEvent.put("id", "srv-" + System.currentTimeMillis());
+                rtEvent.put("type", eventType);
+                rtEvent.put("projectId", broadcastProjectId);
+                rtEvent.put("senderId", "server");
+                rtEvent.put("senderName", "Server");
+                rtEvent.put("payload", rtPayload);
+                rtEvent.put("timestamp", System.currentTimeMillis());
+                wsHandler.broadcastToProject(broadcastProjectId, rtEvent);
+            }
+            // ─────────────────────────────────────────────────────────────────
+
             Map<String, Object> data = new HashMap<>();
             data.put("issue", map);
 
             return ResponseEntity.ok(ApiResponse.success("Issue updated successfully", data));
+
 
         } catch (Exception e) {
             e.printStackTrace();

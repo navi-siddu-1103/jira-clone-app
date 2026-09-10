@@ -11,7 +11,12 @@ import React, {
 import { rtClient, type RTEvent, type RTEventType, type ActiveUser } from "@/lib/wsClient";
 import { useAuth } from "@/context/AuthContext";
 
-const WS_URL = process.env.NEXT_PUBLIC_WS_URL || "";  // set in .env if backend supports WS
+const WS_URL = (() => {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://jira-clone-app.onrender.com";
+    // Convert https:// -> wss://, http:// -> ws://
+    return apiUrl.replace(/^https:\/\//, "wss://").replace(/^http:\/\//, "ws://").replace(/\/+$/, "") + "/ws";
+})();
+
 
 interface RTContextValue {
     isConnected: boolean;
