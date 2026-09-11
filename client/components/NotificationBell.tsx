@@ -104,7 +104,7 @@ const NotificationBell: React.FC = () => {
 
             {/* Dropdown panel */}
             {open && (
-                <div className="absolute right-0 top-10 z-[150] w-80 rounded-xl border border-gray-200 bg-white shadow-2xl">
+                <div className="absolute left-0 top-10 z-[150] w-80 rounded-xl border border-gray-200 bg-white shadow-2xl">
                     {/* Header */}
                     <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
                         <div className="flex items-center gap-2">
