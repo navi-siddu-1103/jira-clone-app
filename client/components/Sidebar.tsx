@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import {
+    Bell,
     ChevronDown,
     FolderKanban,
     LayoutDashboard,
@@ -16,17 +17,18 @@ import {
     LogOut,
 } from "lucide-react";
 
+
 import { useAuth } from "@/context/AuthContext";
 import { Input } from "@/components/ui/input";
-
 import {
     Avatar,
     AvatarFallback,
     AvatarImage,
 } from "@/components/ui/avatar";
-
 import { Button } from "@/components/ui/button";
 import CreateIssueModal from "./CreateIssueModel";
+import NotificationBell from "@/components/NotificationBell";
+
 
 
 const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || "https://jira-clone-app.onrender.com";
@@ -163,15 +165,18 @@ const Sidebar = () => {
         <div className="flex min-h-screen w-[280px] flex-col border-r border-gray-200 bg-white shrink-0">
 
             {/* Logo */}
-            <div className="flex items-center gap-3 border-b border-gray-200 px-5 py-5">
-                <div className="flex h-9 w-9 items-center justify-center rounded-md bg-blue-600 text-white">
-                    <FolderKanban size={20} />
+            <div className="flex items-center justify-between border-b border-gray-200 px-5 py-5">
+                <div className="flex items-center gap-3">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-md bg-blue-600 text-white">
+                        <FolderKanban size={20} />
+                    </div>
+                    <span className="text-xl font-semibold text-gray-900">
+                        Jira Clone
+                    </span>
                 </div>
-
-                <span className="text-xl font-semibold text-gray-900">
-                    Jira Clone
-                </span>
+                <NotificationBell />
             </div>
+
 
             {/* Project Section */}
             {currentProject && (
@@ -297,18 +302,20 @@ const Sidebar = () => {
 
                         <Navitem
                             href="/team"
-                            icon={
-                                <Users className="h-4 w-4" />
-                            }
+                            icon={<Users className="h-4 w-4" />}
                             label="Team"
                         />
 
                         <Navitem
                             href="/profile"
-                            icon={
-                                <Settings className="h-4 w-4" />
-                            }
+                            icon={<Settings className="h-4 w-4" />}
                             label="Profile"
+                        />
+
+                        <Navitem
+                            href="/settings"
+                            icon={<Bell className="h-4 w-4" />}
+                            label="Notifications"
                         />
 
                     </nav>

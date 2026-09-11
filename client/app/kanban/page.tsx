@@ -14,6 +14,12 @@ import {
 } from "@/lib/subtaskManager";
 import { RealtimeProvider, useRealtime } from "@/context/RealtimeContext";
 import PresenceBar from "@/components/PresenceBar";
+import {
+    notifyStatusChanged,
+    notifyTaskAssigned,
+    scheduleDueDateReminders,
+} from "@/lib/notificationManager";
+
 
 
 
@@ -141,14 +147,18 @@ const KanbanBoard = () => {
             if (response.ok) {
                 const fetched: Issue[] =
                     data.data?.issues || data.issues || [];
-                setIssues(fetched.length > 0 ? fetched : defaultSampleIssues);
+                const finalIssues = fetched.length > 0 ? fetched : defaultSampleIssues;
+                setIssues(finalIssues);
+                scheduleDueDateReminders(finalIssues);
             } else {
                 setIssues(defaultSampleIssues);
+                scheduleDueDateReminders(defaultSampleIssues);
             }
         } catch (err) {
             clearTimeout(timeoutId);
             console.warn("Fetch issues failed, showing sample data:", err);
             setIssues(defaultSampleIssues);
+            scheduleDueDateReminders(defaultSampleIssues);
         } finally {
             setIsLoading(false);
         }
@@ -231,6 +241,12 @@ const KanbanBoard = () => {
 
         // ── 4. Broadcast to other users via real-time ──
         publish("ISSUE_STATUS_CHANGED", { issueId, newStatus, updatedAt });
+
+        // ── 5. In-app notification ──
+        const changedIssue = issues.find((i) => (i._id || i.id || i.key) === issueId);
+        if (changedIssue) {
+            notifyStatusChanged(issueId, changedIssue.title, newStatus, user?.name || "Someone");
+        }
 
         // ── 4. Notify about newly unblocked issues ──
         if (newStatus === "DONE") {
