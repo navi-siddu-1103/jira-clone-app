@@ -208,10 +208,10 @@ const HomePage = () => {
     });
 
     return (
-        <div className="min-h-screen bg-slate-50 p-6 md:p-8">
+        <div className="min-h-screen bg-slate-50 p-3 sm:p-4 md:p-6 lg:p-8">
 
             {/* Breadcrumb Navigation */}
-            <div className="mb-4 flex items-center justify-between text-xs text-gray-500">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-xs text-gray-500">
                 <div className="flex items-center gap-1">
                     <span>Projects</span>
                     <span>&gt;</span>
@@ -289,8 +289,8 @@ const HomePage = () => {
 
 
             {/* Kanban Columns with Horizontal Scroll Support */}
-            <div className="overflow-x-auto pb-6 -mx-2 px-2">
-                <div className="flex gap-6 min-w-[1080px]">
+            <div className="overflow-x-auto pb-4 -mx-2 px-2 kanban-scroll">
+                <div className="flex gap-3 sm:gap-6 min-w-[900px] sm:min-w-[1080px]">
                     {columns.map((column) => {
                         const columnIssues = filteredIssues.filter(
                             (issue) => issue.status === column.id

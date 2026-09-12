@@ -206,14 +206,15 @@ const IssueDetailsModal = ({ issue, allIssues = [], onClose, onStatusChange }: I
     // ── render ────────────────────────────────────────────────────────────────
     return (
         <div
-            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4"
+            className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4"
             onClick={onClose}
         >
             <div
-                className="w-full max-w-2xl overflow-hidden rounded-xl bg-white shadow-2xl flex flex-col"
-                style={{ maxHeight: "90vh" }}
+                className="w-full sm:max-w-2xl overflow-hidden rounded-t-2xl sm:rounded-xl bg-white shadow-2xl flex flex-col"
+                style={{ maxHeight: "95vh" }}
                 onClick={(e) => e.stopPropagation()}
             >
+
                 {/* Header */}
                 <div className="flex items-start justify-between border-b border-gray-200 px-6 py-5 shrink-0">
                     <div className="min-w-0 flex-1">
@@ -231,7 +232,7 @@ const IssueDetailsModal = ({ issue, allIssues = [], onClose, onStatusChange }: I
                 </div>
 
                 {/* Tabs */}
-                <div className="flex border-b border-gray-200 px-6 shrink-0">
+                <div className="flex border-b border-gray-200 px-4 sm:px-6 shrink-0 overflow-x-auto no-scrollbar">
                     {(["details", "subtasks", "dependencies", "timelog", "attachments"] as Tab[]).map((tab) => (
                         <button
                             key={tab}

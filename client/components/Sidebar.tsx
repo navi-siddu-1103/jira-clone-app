@@ -15,6 +15,7 @@ import {
     Settings,
     Users,
     LogOut,
+    X,
 } from "lucide-react";
 
 
@@ -28,7 +29,6 @@ import {
 import { Button } from "@/components/ui/button";
 import CreateIssueModal from "./CreateIssueModel";
 import NotificationBell from "@/components/NotificationBell";
-
 
 
 const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || "https://jira-clone-app.onrender.com";
@@ -70,7 +70,7 @@ const defaultProjects: SidebarProject[] = [
     },
 ];
 
-const Sidebar = () => {
+const Sidebar = ({ onClose }: { onClose?: () => void }) => {
     const router = useRouter();
     const { user, logout } = useAuth();
 
@@ -162,10 +162,10 @@ const Sidebar = () => {
 
 
     return (
-        <div className="flex min-h-screen w-[280px] flex-col border-r border-gray-200 bg-white shrink-0">
+        <div className="flex h-screen w-[280px] flex-col border-r border-gray-200 bg-white shrink-0 overflow-y-auto">
 
             {/* Logo */}
-            <div className="flex items-center justify-between border-b border-gray-200 px-5 py-5">
+            <div className="flex items-center justify-between border-b border-gray-200 px-5 py-5 shrink-0">
                 <div className="flex items-center gap-3">
                     <div className="flex h-9 w-9 items-center justify-center rounded-md bg-blue-600 text-white">
                         <FolderKanban size={20} />
@@ -174,9 +174,20 @@ const Sidebar = () => {
                         Jira Clone
                     </span>
                 </div>
-                <NotificationBell />
+                <div className="flex items-center gap-2">
+                    <NotificationBell />
+                    {/* Close button — only visible on mobile */}
+                    {onClose && (
+                        <button
+                            onClick={onClose}
+                            className="lg:hidden rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+                            aria-label="Close sidebar"
+                        >
+                            <X className="h-5 w-5" />
+                        </button>
+                    )}
+                </div>
             </div>
-
 
             {/* Project Section */}
             {currentProject && (

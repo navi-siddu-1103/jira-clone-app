@@ -128,10 +128,10 @@ const BacklogPage = () => {
         <div className="min-h-screen bg-[#F7F8FA]">
 
             {/* Header */}
-            <div className="border-b border-gray-200 bg-white px-8 py-5">
-                <div className="flex items-center justify-between">
+            <div className="border-b border-gray-200 bg-white px-4 sm:px-8 py-4 sm:py-5">
+                <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
-                        <h1 className="text-2xl font-semibold text-[#172B4D]">
+                        <h1 className="text-xl sm:text-2xl font-semibold text-[#172B4D]">
                             Backlog
                         </h1>
                         <p className="mt-1 text-sm text-[#6B778C]">
@@ -150,9 +150,9 @@ const BacklogPage = () => {
             </div>
 
             {/* Toolbar */}
-            <div className="border-b border-gray-200 bg-white px-8 py-4">
-                <div className="flex items-center justify-between">
-                    <div className="relative w-full max-w-md">
+            <div className="border-b border-gray-200 bg-white px-4 sm:px-8 py-3 sm:py-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="relative w-full sm:max-w-md">
                         <Search
                             className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
                         />
@@ -164,14 +164,14 @@ const BacklogPage = () => {
                         />
                     </div>
 
-                    <div className="ml-4 text-sm text-[#6B778C]">
+                    <div className="text-sm text-[#6B778C]">
                         {filteredIssues.length} issues
                     </div>
                 </div>
             </div>
 
             {/* Backlog Content */}
-            <div className="p-8">
+            <div className="p-4 sm:p-6 md:p-8">
                 <div className="rounded-lg border border-gray-200 bg-white shadow-sm">
 
                     {/* Section Header */}
@@ -224,7 +224,7 @@ const BacklogPage = () => {
                                     <div
                                         key={issueId}
                                         onClick={() => setSelectedIssue(issue)}
-                                        className="flex cursor-pointer items-center gap-4 border-b border-gray-100 px-6 py-4 transition last:border-b-0 hover:bg-gray-50"
+                                        className="flex cursor-pointer items-center gap-2 sm:gap-4 border-b border-gray-100 px-3 sm:px-6 py-3 sm:py-4 transition last:border-b-0 hover:bg-gray-50"
                                     >
                                         {/* Issue Type */}
                                         <div className="flex h-8 w-8 items-center justify-center rounded-md bg-gray-50">

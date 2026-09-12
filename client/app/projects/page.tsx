@@ -206,10 +206,10 @@ const ProjectsPage = () => {
         <div className="min-h-screen bg-[#F7F8FA]">
 
             {/* Header */}
-            <div className="border-b bg-white px-8 py-6">
-                <div className="flex items-center justify-between">
+            <div className="border-b bg-white px-4 sm:px-8 py-4 sm:py-6">
+                <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
-                        <h1 className="text-2xl font-semibold text-[#172B4D]">
+                        <h1 className="text-xl sm:text-2xl font-semibold text-[#172B4D]">
                             Projects
                         </h1>
                         <p className="mt-1 text-sm text-[#6B778C]">
@@ -228,11 +228,11 @@ const ProjectsPage = () => {
             </div>
 
             {/* Main Content */}
-            <div className="p-8">
+            <div className="p-4 sm:p-6 md:p-8">
 
                 {/* Search Toolbar */}
-                <div className="mb-6 flex items-center justify-between">
-                    <div className="relative w-full max-w-md">
+                <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+                    <div className="relative w-full sm:max-w-md">
                         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                         <Input
                             placeholder="Search projects..."
@@ -242,10 +242,11 @@ const ProjectsPage = () => {
                         />
                     </div>
 
-                    <div className="ml-4 text-sm text-[#6B778C]">
+                    <div className="text-sm text-[#6B778C]">
                         {filteredProjects.length} projects
                     </div>
                 </div>
+
 
                 {/* Projects List */}
                 {isLoading ? (
@@ -265,7 +266,7 @@ const ProjectsPage = () => {
                         </div>
                     </div>
                 ) : (
-                    <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+                    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                         {filteredProjects.map((project) => {
                             const pId = project._id || project.id || project.key;
                             const ownerName = project.owner || "Naveen";

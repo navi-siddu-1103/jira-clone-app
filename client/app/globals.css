@@ -128,3 +128,25 @@
     @apply font-sans;
   }
 }
+
+/* ── Responsive utilities ────────────────────────────────────────────── */
+
+/* Hide scrollbar while keeping scroll functionality */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Thin scrollbar for Kanban columns on desktop */
+.kanban-scroll::-webkit-scrollbar { height: 6px; }
+.kanban-scroll::-webkit-scrollbar-track { background: transparent; }
+.kanban-scroll::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 3px; }
+
+/* Ensure inputs don't zoom on iOS */
+input, select, textarea { font-size: 16px !important; }
+@media (min-width: 640px) {
+  input, select, textarea { font-size: inherit !important; }
+}
+
+/* Touch-friendly tap targets */
+@media (max-width: 640px) {
+  button { min-height: 36px; }
+}

@@ -49,12 +49,12 @@ const SettingsPage = () => {
     return (
         <div className="min-h-screen bg-[#F7F8FA]">
             {/* Header */}
-            <div className="border-b border-gray-200 bg-white px-8 py-5">
-                <h1 className="text-2xl font-semibold text-[#172B4D]">Settings</h1>
+            <div className="border-b border-gray-200 bg-white px-4 sm:px-8 py-4 sm:py-5">
+                <h1 className="text-xl sm:text-2xl font-semibold text-[#172B4D]">Settings</h1>
                 <p className="mt-1 text-sm text-[#6B778C]">Manage your notification preferences and account settings.</p>
             </div>
 
-            <div className="p-6 md:p-8">
+            <div className="p-4 sm:p-6 md:p-8">
                 <div className="mx-auto max-w-2xl space-y-6">
 
                     {/* Saved banner */}
