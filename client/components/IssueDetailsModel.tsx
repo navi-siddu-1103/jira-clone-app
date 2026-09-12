@@ -27,6 +27,8 @@ import {
 } from "@/lib/subtaskManager";
 
 import TimeTrackingPanel from "@/components/TimeTrackingPanel";
+import FileAttachmentPanel from "@/components/FileAttachmentPanel";
+
 
 interface IssueDetailsModalProps {
     issue: Issue;
@@ -35,7 +37,8 @@ interface IssueDetailsModalProps {
     onStatusChange?: (id: string, status: string) => void;
 }
 
-type Tab = "details" | "subtasks" | "dependencies" | "timelog";
+type Tab = "details" | "subtasks" | "dependencies" | "timelog" | "attachments";
+
 
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
@@ -229,7 +232,7 @@ const IssueDetailsModal = ({ issue, allIssues = [], onClose, onStatusChange }: I
 
                 {/* Tabs */}
                 <div className="flex border-b border-gray-200 px-6 shrink-0">
-                    {(["details", "subtasks", "dependencies", "timelog"] as Tab[]).map((tab) => (
+                    {(["details", "subtasks", "dependencies", "timelog", "attachments"] as Tab[]).map((tab) => (
                         <button
                             key={tab}
                             onClick={() => setActiveTab(tab)}
@@ -239,7 +242,7 @@ const IssueDetailsModal = ({ issue, allIssues = [], onClose, onStatusChange }: I
                                     : "border-transparent text-gray-500 hover:text-gray-700"
                             }`}
                         >
-                            {tab === "timelog" ? "Time Log" : tab}
+                            {tab === "timelog" ? "Time Log" : tab === "attachments" ? "Files" : tab}
                             {tab === "subtasks" && subtasks.length > 0 && (
                                 <span className="ml-1.5 rounded-full bg-blue-100 px-1.5 py-0.5 text-[10px] font-bold text-blue-600">
                                     {subtasks.length}
@@ -252,6 +255,7 @@ const IssueDetailsModal = ({ issue, allIssues = [], onClose, onStatusChange }: I
                             )}
                         </button>
                     ))}
+
 
                 </div>
 
@@ -533,7 +537,15 @@ const IssueDetailsModal = ({ issue, allIssues = [], onClose, onStatusChange }: I
                             sprint={issue.sprint}
                         />
                     )}
+
+                    {/* ── ATTACHMENTS TAB ── */}
+                    {activeTab === "attachments" && (
+                        <div className="p-4">
+                            <FileAttachmentPanel issueId={id} />
+                        </div>
+                    )}
                 </div>
+
 
 
                 {/* Footer */}
